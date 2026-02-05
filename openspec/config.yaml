@@ -1,0 +1,30 @@
+schema: spec-driven
+
+context: |
+  Tech stack: TypeScript, Node.js 18+
+  Build system: tsup (ESM + CJS dual output)
+  Test framework: vitest
+  Package name: docutray (published on npm)
+  Source directory: src/
+
+  This is an API wrapper library following patterns from stripe-node and openai-node.
+  The SDK follows a 3-layer architecture: Client Layer → HTTP Layer → Exceptions Layer.
+  It is the Node.js equivalent of the docutray Python SDK.
+
+  Conventions:
+  - All code, comments, and documentation must be in English
+  - Internal documentation in /docs may be in Spanish
+  - TypeScript strict mode enabled
+  - camelCase for methods and properties (matching JS conventions)
+  - All async operations return Promises (no sync/async dual like Python)
+  - Private modules prefixed with underscore (_client.ts, _http.ts, etc.)
+
+  Domain: Document processing API (OCR, identification, extraction, knowledge bases)
+
+rules:
+  proposal:
+    - Reference the project architecture (3-layer pattern)
+    - Consider the Python SDK as reference implementation
+  tasks:
+    - Each task should be independently testable
+    - Include TypeScript types in all code tasks
