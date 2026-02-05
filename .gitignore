@@ -20,6 +20,9 @@ coverage/
 *.swp
 *.swo
 
+# Docs
+docs/
+
 # Claude
 .claude/
 
