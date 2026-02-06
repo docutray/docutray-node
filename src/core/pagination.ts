@@ -2,8 +2,12 @@ import type { APIClient } from './api-client.js';
 import type { RequestOptions } from './types.js';
 
 export interface PageResponse<T> {
-  items: T[];
-  next_cursor?: string | null;
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+  };
 }
 
 export interface PageOptions {
@@ -14,18 +18,18 @@ export interface PageOptions {
 }
 
 export class Page<T> {
-  readonly items: T[];
-  private readonly nextCursor: string | null;
+  readonly data: T[];
+  private readonly pagination: { total: number; page: number; limit: number };
   private readonly pageOptions: PageOptions;
 
-  constructor(data: PageResponse<T>, pageOptions: PageOptions) {
-    this.items = data.items;
-    this.nextCursor = data.next_cursor ?? null;
+  constructor(response: PageResponse<T>, pageOptions: PageOptions) {
+    this.data = response.data;
+    this.pagination = response.pagination;
     this.pageOptions = pageOptions;
   }
 
   hasNextPage(): boolean {
-    return this.nextCursor !== null && this.nextCursor !== '';
+    return this.pagination.page * this.pagination.limit < this.pagination.total;
   }
 
   async nextPage(): Promise<Page<T>> {
@@ -35,7 +39,8 @@ export class Page<T> {
 
     const query = {
       ...this.pageOptions.query,
-      cursor: this.nextCursor!,
+      page: this.pagination.page + 1,
+      limit: this.pagination.limit,
     };
 
     const response = await this.pageOptions.client.get<PageResponse<T>>(
@@ -58,7 +63,7 @@ export class Page<T> {
 
   async *autoPagingIter(): AsyncIterableIterator<T> {
     for await (const page of this.iterPages()) {
-      for (const item of page.items) {
+      for (const item of page.data) {
         yield item;
       }
     }

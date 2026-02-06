@@ -24,58 +24,76 @@ function createPage<T>(
 }
 
 describe('Page', () => {
-  describe('items', () => {
-    it('exposes items from the page response', () => {
+  describe('data', () => {
+    it('exposes data from the page response', () => {
       const client = createMockClient([]);
-      const page = createPage({ items: [{ id: 1 }, { id: 2 }] }, client);
-      expect(page.items).toEqual([{ id: 1 }, { id: 2 }]);
+      const page = createPage(
+        { data: [{ id: 1 }, { id: 2 }], pagination: { total: 2, page: 1, limit: 10 } },
+        client,
+      );
+      expect(page.data).toEqual([{ id: 1 }, { id: 2 }]);
     });
   });
 
   describe('hasNextPage', () => {
-    it('returns true when next_cursor is present', () => {
+    it('returns true when more pages exist', () => {
       const client = createMockClient([]);
-      const page = createPage({ items: [], next_cursor: 'abc' }, client);
+      const page = createPage(
+        { data: [{ id: 1 }], pagination: { total: 15, page: 1, limit: 10 } },
+        client,
+      );
       expect(page.hasNextPage()).toBe(true);
     });
 
-    it('returns false when next_cursor is null', () => {
+    it('returns false when on the last page', () => {
       const client = createMockClient([]);
-      const page = createPage({ items: [], next_cursor: null }, client);
+      const page = createPage(
+        { data: [{ id: 1 }], pagination: { total: 10, page: 1, limit: 10 } },
+        client,
+      );
       expect(page.hasNextPage()).toBe(false);
     });
 
-    it('returns false when next_cursor is undefined', () => {
+    it('returns false when total is zero', () => {
       const client = createMockClient([]);
-      const page = createPage({ items: [] }, client);
+      const page = createPage(
+        { data: [], pagination: { total: 0, page: 1, limit: 10 } },
+        client,
+      );
       expect(page.hasNextPage()).toBe(false);
     });
 
-    it('returns false when next_cursor is empty string', () => {
+    it('returns false when page * limit exceeds total', () => {
       const client = createMockClient([]);
-      const page = createPage({ items: [], next_cursor: '' }, client);
+      const page = createPage(
+        { data: [{ id: 1 }], pagination: { total: 5, page: 2, limit: 5 } },
+        client,
+      );
       expect(page.hasNextPage()).toBe(false);
     });
   });
 
   describe('nextPage', () => {
-    it('fetches the next page using cursor', async () => {
+    it('fetches the next page using page increment', async () => {
       const client = createMockClient([
-        { items: [{ id: 3 }], next_cursor: null },
+        { data: [{ id: 3 }], pagination: { total: 3, page: 2, limit: 2 } },
       ]);
       const page = createPage(
-        { items: [{ id: 1 }, { id: 2 }], next_cursor: 'cursor_1' },
+        { data: [{ id: 1 }, { id: 2 }], pagination: { total: 3, page: 1, limit: 2 } },
         client,
       );
 
       const next = await page.nextPage();
-      expect(next.items).toEqual([{ id: 3 }]);
+      expect(next.data).toEqual([{ id: 3 }]);
       expect(next.hasNextPage()).toBe(false);
     });
 
     it('throws when no more pages', async () => {
       const client = createMockClient([]);
-      const page = createPage({ items: [] }, client);
+      const page = createPage(
+        { data: [], pagination: { total: 0, page: 1, limit: 10 } },
+        client,
+      );
       await expect(page.nextPage()).rejects.toThrow('No more pages available');
     });
   });
@@ -83,12 +101,12 @@ describe('Page', () => {
   describe('iterPages', () => {
     it('yields all pages in sequence', async () => {
       const client = createMockClient([
-        { items: [{ id: 3 }, { id: 4 }], next_cursor: 'cursor_2' },
-        { items: [{ id: 5 }], next_cursor: null },
+        { data: [{ id: 3 }, { id: 4 }], pagination: { total: 5, page: 2, limit: 2 } },
+        { data: [{ id: 5 }], pagination: { total: 5, page: 3, limit: 2 } },
       ]);
 
       const firstPage = createPage(
-        { items: [{ id: 1 }, { id: 2 }], next_cursor: 'cursor_1' },
+        { data: [{ id: 1 }, { id: 2 }], pagination: { total: 5, page: 1, limit: 2 } },
         client,
       );
 
@@ -98,20 +116,20 @@ describe('Page', () => {
       }
 
       expect(pages).toHaveLength(3);
-      expect(pages[0].items).toEqual([{ id: 1 }, { id: 2 }]);
-      expect(pages[1].items).toEqual([{ id: 3 }, { id: 4 }]);
-      expect(pages[2].items).toEqual([{ id: 5 }]);
+      expect(pages[0].data).toEqual([{ id: 1 }, { id: 2 }]);
+      expect(pages[1].data).toEqual([{ id: 3 }, { id: 4 }]);
+      expect(pages[2].data).toEqual([{ id: 5 }]);
     });
   });
 
   describe('autoPagingIter', () => {
     it('yields all items across pages', async () => {
       const client = createMockClient([
-        { items: [{ id: 3 }], next_cursor: null },
+        { data: [{ id: 3 }], pagination: { total: 3, page: 2, limit: 2 } },
       ]);
 
       const firstPage = createPage(
-        { items: [{ id: 1 }, { id: 2 }], next_cursor: 'cursor_1' },
+        { data: [{ id: 1 }, { id: 2 }], pagination: { total: 3, page: 1, limit: 2 } },
         client,
       );
 
@@ -127,12 +145,12 @@ describe('Page', () => {
   describe('toArray', () => {
     it('collects items up to the limit', async () => {
       const client = createMockClient([
-        { items: [{ id: 3 }, { id: 4 }], next_cursor: 'cursor_2' },
-        { items: [{ id: 5 }, { id: 6 }], next_cursor: null },
+        { data: [{ id: 3 }, { id: 4 }], pagination: { total: 6, page: 2, limit: 2 } },
+        { data: [{ id: 5 }, { id: 6 }], pagination: { total: 6, page: 3, limit: 2 } },
       ]);
 
       const firstPage = createPage(
-        { items: [{ id: 1 }, { id: 2 }], next_cursor: 'cursor_1' },
+        { data: [{ id: 1 }, { id: 2 }], pagination: { total: 6, page: 1, limit: 2 } },
         client,
       );
 
@@ -144,7 +162,7 @@ describe('Page', () => {
     it('returns all items when fewer than limit', async () => {
       const client = createMockClient([]);
       const page = createPage(
-        { items: [{ id: 1 }, { id: 2 }], next_cursor: null },
+        { data: [{ id: 1 }, { id: 2 }], pagination: { total: 2, page: 1, limit: 10 } },
         client,
       );
 

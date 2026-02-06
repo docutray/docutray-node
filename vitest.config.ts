@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     passWithNoTests: true,
+    setupFiles: ['tests/helpers/setup.ts'],
     coverage: {
       provider: 'v8',
       thresholds: {
