@@ -13,7 +13,7 @@ import { config } from 'dotenv';
 import { readFileSync } from 'node:fs';
 
 config({ path: new URL('.env', import.meta.url) });
-import DocuTray, { isConversionSuccess } from 'docutray';
+import DocuTray from 'docutray';
 
 const client = new DocuTray();
 
@@ -89,10 +89,14 @@ async function convertFromBase64() {
   }
 }
 
-// Run the file conversion example (sync):
-convertFromFile();
+async function main() {
+  // Run the file conversion example (sync):
+  await convertFromFile();
 
-// Uncomment for other examples:
-// convertFromUrl();
-// convertFromBase64();
-// convertAsync();
+  // Uncomment for other examples:
+  // await convertFromUrl();
+  // await convertFromBase64();
+  // await convertAsync();
+}
+
+main().catch(console.error);

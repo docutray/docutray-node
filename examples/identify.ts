@@ -71,10 +71,14 @@ async function identifyFromBase64() {
   console.log('Result:', JSON.stringify(result, null, 2));
 }
 
-// Run the file identification example (sync):
-identifyFromFile();
+async function main() {
+  // Run the file identification example (sync):
+  await identifyFromFile();
 
-// Uncomment for other examples:
-// identifyFromUrl();
-// identifyFromBase64();
-// identifyAsync();
+  // Uncomment for other examples:
+  // await identifyFromUrl();
+  // await identifyFromBase64();
+  // await identifyAsync();
+}
+
+main().catch(console.error);

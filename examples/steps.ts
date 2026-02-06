@@ -89,9 +89,13 @@ async function runStepFromBase64() {
   console.log('Result:', JSON.stringify(result, null, 2));
 }
 
-// Run step from file (async with polling):
-runStepFromFile();
+async function main() {
+  // Run step from file (async with polling):
+  await runStepFromFile();
 
-// Uncomment for other examples:
-// runStepFromUrl();
-// runStepFromBase64();
+  // Uncomment for other examples:
+  // await runStepFromUrl();
+  // await runStepFromBase64();
+}
+
+main().catch(console.error);

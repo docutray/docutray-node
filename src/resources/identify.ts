@@ -28,7 +28,7 @@ type IdentificationStatusWithWait = IdentificationStatus & {
  * const result = await client.identify.run({
  *   url: 'https://example.com/document.pdf',
  * });
- * console.log(result.documentType); // best match
+ * console.log(result.document_type); // best match
  * console.log(result.alternatives); // other candidates
  *
  * // Asynchronous identification with polling

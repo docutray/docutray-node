@@ -12,7 +12,7 @@ export type StepExecutionStatusType = 'ENQUEUED' | 'PROCESSING' | 'SUCCESS' | 'E
 export interface StepExecutionStatus {
   /** Unique identifier for this execution (present in enqueue response). */
   id: string;
-  /** Conversion identifier (present in status response, same value as `id`). */
+  /** Conversion identifier (present in status response). */
   conversion_id?: string;
   /** Current status of the execution. */
   status: StepExecutionStatusType;

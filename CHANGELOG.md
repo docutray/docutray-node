@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - TSDoc documentation on all public classes, methods, interfaces, and types
-- Usage examples for all resources (`examples/`)
+- Usage examples for convert, identify, steps, and document-types resources (`examples/`)
 - CHANGELOG.md entries for v0.1.0
 
 ## [0.1.0] - 2025-06-01
