@@ -17,7 +17,7 @@ type StepExecutionStatusWithWait = StepExecutionStatus & {
 };
 
 export class Steps extends APIResource {
-  async runAsync(params: StepsRunParams, options?: RequestOptions): Promise<StepExecutionStatusWithWait> {
+  async runAsync(params: StepsRunParams, options?: Omit<RequestOptions, 'raw'>): Promise<StepExecutionStatusWithWait> {
     const status = await this._run(params, options) as StepExecutionStatus;
     return Object.assign(status, {
       wait: (pollOptions?: Partial<PollOptions<StepExecutionStatus>>) =>
@@ -35,7 +35,7 @@ export class Steps extends APIResource {
     });
   }
 
-  async getStatus(executionId: string, options?: RequestOptions): Promise<StepExecutionStatus> {
+  async getStatus(executionId: string, options?: Omit<RequestOptions, 'raw'>): Promise<StepExecutionStatus> {
     return this._client.get<StepExecutionStatus>(
       `/api/steps-async/status/${executionId}`,
       options,
@@ -43,10 +43,10 @@ export class Steps extends APIResource {
   }
 
   get withRawResponse(): StepsWithRawResponse {
-    return new StepsWithRawResponse(this, this._client);
+    return new StepsWithRawResponse(this._run.bind(this), this._client);
   }
 
-  private async _run(
+  protected async _run(
     params: StepsRunParams,
     options?: RequestOptions,
   ): Promise<StepExecutionStatus | RawResponse<StepExecutionStatus>> {
@@ -80,20 +80,25 @@ export class Steps extends APIResource {
   }
 }
 
+type StepsRunFn = (
+  params: StepsRunParams,
+  options?: RequestOptions,
+) => Promise<StepExecutionStatus | RawResponse<StepExecutionStatus>>;
+
 class StepsWithRawResponse {
-  private _resource: Steps;
+  private _run: StepsRunFn;
   private _client: APIClient;
 
-  constructor(resource: Steps, client: APIClient) {
-    this._resource = resource;
+  constructor(run: StepsRunFn, client: APIClient) {
+    this._run = run;
     this._client = client;
   }
 
-  async runAsync(params: StepsRunParams, options?: RequestOptions): Promise<RawResponse<StepExecutionStatus>> {
-    return this._resource['_run'](params, { ...options, raw: true }) as Promise<RawResponse<StepExecutionStatus>>;
+  async runAsync(params: StepsRunParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<StepExecutionStatus>> {
+    return this._run(params, { ...options, raw: true }) as Promise<RawResponse<StepExecutionStatus>>;
   }
 
-  async getStatus(executionId: string, options?: RequestOptions): Promise<RawResponse<StepExecutionStatus>> {
+  async getStatus(executionId: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<StepExecutionStatus>> {
     return this._client.get<StepExecutionStatus>(
       `/api/steps-async/status/${executionId}`,
       { ...options, raw: true },

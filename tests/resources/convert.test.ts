@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
-import { http, HttpResponse } from 'msw';
-import { setupServer } from 'msw/node';
+import { describe, it, expect } from 'vitest';
+import { server, http, HttpResponse } from '../helpers/mock-server.js';
 import { Convert } from '../../src/resources/convert.js';
 import { APIClient } from '../../src/core/api-client.js';
 import { RawResponse } from '../../src/core/raw-response.js';
@@ -11,16 +10,10 @@ import {
   mockConversionPending,
 } from '../helpers/fixtures.js';
 
-const server = setupServer();
-
 function createConvert(): Convert {
   const client = new APIClient({ apiKey: 'test-key', baseURL: TEST_BASE_URL });
   return new Convert(client);
 }
-
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
 
 describe('Convert', () => {
   describe('run()', () => {

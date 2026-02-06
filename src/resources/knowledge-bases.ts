@@ -50,7 +50,7 @@ export interface KBDocumentListParams {
 }
 
 export class KnowledgeBases extends APIResource {
-  async list(params?: KnowledgeBaseListParams, options?: RequestOptions): Promise<Page<KnowledgeBase>> {
+  async list(params?: KnowledgeBaseListParams, options?: Omit<RequestOptions, 'raw'>): Promise<Page<KnowledgeBase>> {
     const query = params ? { ...params } : undefined;
     const response = await this._client.get<PageResponse<KnowledgeBase>>(
       '/api/knowledge-bases',
@@ -64,14 +64,14 @@ export class KnowledgeBases extends APIResource {
     });
   }
 
-  async get(id: string, options?: RequestOptions): Promise<KnowledgeBase> {
+  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBase> {
     return this._client.get<KnowledgeBase>(
       `/api/knowledge-bases/${id}`,
       options,
     ) as Promise<KnowledgeBase>;
   }
 
-  async create(params: KnowledgeBaseCreateParams, options?: RequestOptions): Promise<KnowledgeBase> {
+  async create(params: KnowledgeBaseCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBase> {
     return this._client.post<KnowledgeBase>(
       '/api/knowledge-bases',
       params,
@@ -79,7 +79,7 @@ export class KnowledgeBases extends APIResource {
     ) as Promise<KnowledgeBase>;
   }
 
-  async update(id: string, params: KnowledgeBaseUpdateParams, options?: RequestOptions): Promise<KnowledgeBase> {
+  async update(id: string, params: KnowledgeBaseUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBase> {
     return this._client.put<KnowledgeBase>(
       `/api/knowledge-bases/${id}`,
       params,
@@ -87,14 +87,14 @@ export class KnowledgeBases extends APIResource {
     ) as Promise<KnowledgeBase>;
   }
 
-  async delete(id: string, options?: RequestOptions): Promise<void> {
+  async delete(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<void> {
     await this._client.delete<void>(
       `/api/knowledge-bases/${id}`,
       options,
     );
   }
 
-  async search(id: string, params: KnowledgeBaseSearchParams, options?: RequestOptions): Promise<SearchResult> {
+  async search(id: string, params: KnowledgeBaseSearchParams, options?: Omit<RequestOptions, 'raw'>): Promise<SearchResult> {
     return this._client.post<SearchResult>(
       `/api/knowledge-bases/${id}/search`,
       params,
@@ -102,7 +102,7 @@ export class KnowledgeBases extends APIResource {
     ) as Promise<SearchResult>;
   }
 
-  async sync(id: string, options?: RequestOptions): Promise<SyncResult> {
+  async sync(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<SyncResult> {
     return this._client.post<SyncResult>(
       `/api/knowledge-bases/${id}/sync`,
       undefined,
@@ -120,15 +120,15 @@ export class KnowledgeBases extends APIResource {
 }
 
 export class KnowledgeBaseDocuments {
-  private _client: APIClient;
-  private _basePath: string;
+  protected _client: APIClient;
+  protected _basePath: string;
 
   constructor(client: APIClient, knowledgeBaseId: string) {
     this._client = client;
     this._basePath = `/api/knowledge-bases/${knowledgeBaseId}/documents`;
   }
 
-  async list(params?: KBDocumentListParams, options?: RequestOptions): Promise<Page<KnowledgeBaseDocument>> {
+  async list(params?: KBDocumentListParams, options?: Omit<RequestOptions, 'raw'>): Promise<Page<KnowledgeBaseDocument>> {
     const query = params ? { ...params } : undefined;
     const response = await this._client.get<PageResponse<KnowledgeBaseDocument>>(
       this._basePath,
@@ -142,14 +142,14 @@ export class KnowledgeBaseDocuments {
     });
   }
 
-  async get(id: string, options?: RequestOptions): Promise<KnowledgeBaseDocument> {
+  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBaseDocument> {
     return this._client.get<KnowledgeBaseDocument>(
       `${this._basePath}/${id}`,
       options,
     ) as Promise<KnowledgeBaseDocument>;
   }
 
-  async create(params: KBDocumentCreateParams, options?: RequestOptions): Promise<KnowledgeBaseDocument> {
+  async create(params: KBDocumentCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBaseDocument> {
     return this._client.post<KnowledgeBaseDocument>(
       this._basePath,
       params,
@@ -157,7 +157,7 @@ export class KnowledgeBaseDocuments {
     ) as Promise<KnowledgeBaseDocument>;
   }
 
-  async update(id: string, params: KBDocumentUpdateParams, options?: RequestOptions): Promise<KnowledgeBaseDocument> {
+  async update(id: string, params: KBDocumentUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBaseDocument> {
     return this._client.put<KnowledgeBaseDocument>(
       `${this._basePath}/${id}`,
       params,
@@ -165,7 +165,7 @@ export class KnowledgeBaseDocuments {
     ) as Promise<KnowledgeBaseDocument>;
   }
 
-  async delete(id: string, options?: RequestOptions): Promise<void> {
+  async delete(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<void> {
     await this._client.delete<void>(
       `${this._basePath}/${id}`,
       options,
@@ -173,7 +173,7 @@ export class KnowledgeBaseDocuments {
   }
 
   get withRawResponse(): KnowledgeBaseDocumentsWithRawResponse {
-    return new KnowledgeBaseDocumentsWithRawResponse(this);
+    return new KnowledgeBaseDocumentsWithRawResponse(this._client, this._basePath);
   }
 }
 
@@ -184,7 +184,7 @@ class KnowledgeBasesWithRawResponse {
     this._client = client;
   }
 
-  async list(params?: KnowledgeBaseListParams, options?: RequestOptions): Promise<RawResponse<PageResponse<KnowledgeBase>>> {
+  async list(params?: KnowledgeBaseListParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<PageResponse<KnowledgeBase>>> {
     const query = params ? { ...params } : undefined;
     return this._client.get<PageResponse<KnowledgeBase>>(
       '/api/knowledge-bases',
@@ -192,14 +192,14 @@ class KnowledgeBasesWithRawResponse {
     ) as Promise<RawResponse<PageResponse<KnowledgeBase>>>;
   }
 
-  async get(id: string, options?: RequestOptions): Promise<RawResponse<KnowledgeBase>> {
+  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBase>> {
     return this._client.get<KnowledgeBase>(
       `/api/knowledge-bases/${id}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<KnowledgeBase>>;
   }
 
-  async create(params: KnowledgeBaseCreateParams, options?: RequestOptions): Promise<RawResponse<KnowledgeBase>> {
+  async create(params: KnowledgeBaseCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBase>> {
     return this._client.post<KnowledgeBase>(
       '/api/knowledge-bases',
       params,
@@ -207,7 +207,7 @@ class KnowledgeBasesWithRawResponse {
     ) as Promise<RawResponse<KnowledgeBase>>;
   }
 
-  async update(id: string, params: KnowledgeBaseUpdateParams, options?: RequestOptions): Promise<RawResponse<KnowledgeBase>> {
+  async update(id: string, params: KnowledgeBaseUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBase>> {
     return this._client.put<KnowledgeBase>(
       `/api/knowledge-bases/${id}`,
       params,
@@ -215,14 +215,14 @@ class KnowledgeBasesWithRawResponse {
     ) as Promise<RawResponse<KnowledgeBase>>;
   }
 
-  async delete(id: string, options?: RequestOptions): Promise<RawResponse<void>> {
+  async delete(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<void>> {
     return this._client.delete<void>(
       `/api/knowledge-bases/${id}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<void>>;
   }
 
-  async search(id: string, params: KnowledgeBaseSearchParams, options?: RequestOptions): Promise<RawResponse<SearchResult>> {
+  async search(id: string, params: KnowledgeBaseSearchParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<SearchResult>> {
     return this._client.post<SearchResult>(
       `/api/knowledge-bases/${id}/search`,
       params,
@@ -230,7 +230,7 @@ class KnowledgeBasesWithRawResponse {
     ) as Promise<RawResponse<SearchResult>>;
   }
 
-  async sync(id: string, options?: RequestOptions): Promise<RawResponse<SyncResult>> {
+  async sync(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<SyncResult>> {
     return this._client.post<SyncResult>(
       `/api/knowledge-bases/${id}/sync`,
       undefined,
@@ -240,46 +240,48 @@ class KnowledgeBasesWithRawResponse {
 }
 
 class KnowledgeBaseDocumentsWithRawResponse {
-  private _resource: KnowledgeBaseDocuments;
+  private _client: APIClient;
+  private _basePath: string;
 
-  constructor(resource: KnowledgeBaseDocuments) {
-    this._resource = resource;
+  constructor(client: APIClient, basePath: string) {
+    this._client = client;
+    this._basePath = basePath;
   }
 
-  async list(params?: KBDocumentListParams, options?: RequestOptions): Promise<RawResponse<PageResponse<KnowledgeBaseDocument>>> {
+  async list(params?: KBDocumentListParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<PageResponse<KnowledgeBaseDocument>>> {
     const query = params ? { ...params } : undefined;
-    return this._resource['_client'].get<PageResponse<KnowledgeBaseDocument>>(
-      this._resource['_basePath'],
+    return this._client.get<PageResponse<KnowledgeBaseDocument>>(
+      this._basePath,
       { ...options, query, raw: true },
     ) as Promise<RawResponse<PageResponse<KnowledgeBaseDocument>>>;
   }
 
-  async get(id: string, options?: RequestOptions): Promise<RawResponse<KnowledgeBaseDocument>> {
-    return this._resource['_client'].get<KnowledgeBaseDocument>(
-      `${this._resource['_basePath']}/${id}`,
+  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseDocument>> {
+    return this._client.get<KnowledgeBaseDocument>(
+      `${this._basePath}/${id}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<KnowledgeBaseDocument>>;
   }
 
-  async create(params: KBDocumentCreateParams, options?: RequestOptions): Promise<RawResponse<KnowledgeBaseDocument>> {
-    return this._resource['_client'].post<KnowledgeBaseDocument>(
-      this._resource['_basePath'],
+  async create(params: KBDocumentCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseDocument>> {
+    return this._client.post<KnowledgeBaseDocument>(
+      this._basePath,
       params,
       { ...options, raw: true },
     ) as Promise<RawResponse<KnowledgeBaseDocument>>;
   }
 
-  async update(id: string, params: KBDocumentUpdateParams, options?: RequestOptions): Promise<RawResponse<KnowledgeBaseDocument>> {
-    return this._resource['_client'].put<KnowledgeBaseDocument>(
-      `${this._resource['_basePath']}/${id}`,
+  async update(id: string, params: KBDocumentUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseDocument>> {
+    return this._client.put<KnowledgeBaseDocument>(
+      `${this._basePath}/${id}`,
       params,
       { ...options, raw: true },
     ) as Promise<RawResponse<KnowledgeBaseDocument>>;
   }
 
-  async delete(id: string, options?: RequestOptions): Promise<RawResponse<void>> {
-    return this._resource['_client'].delete<void>(
-      `${this._resource['_basePath']}/${id}`,
+  async delete(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<void>> {
+    return this._client.delete<void>(
+      `${this._basePath}/${id}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<void>>;
   }

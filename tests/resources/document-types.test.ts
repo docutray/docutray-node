@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
-import { http, HttpResponse } from 'msw';
-import { setupServer } from 'msw/node';
+import { describe, it, expect } from 'vitest';
+import { server, http, HttpResponse } from '../helpers/mock-server.js';
 import { DocumentTypes } from '../../src/resources/document-types.js';
 import { APIClient } from '../../src/core/api-client.js';
 import { RawResponse } from '../../src/core/raw-response.js';
@@ -10,16 +9,10 @@ import {
   mockValidationResult,
 } from '../helpers/fixtures.js';
 
-const server = setupServer();
-
 function createDocumentTypes(): DocumentTypes {
   const client = new APIClient({ apiKey: 'test-key', baseURL: TEST_BASE_URL });
   return new DocumentTypes(client);
 }
-
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
 
 describe('DocumentTypes', () => {
   describe('list()', () => {

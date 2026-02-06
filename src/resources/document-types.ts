@@ -7,7 +7,7 @@ import type { RequestOptions } from '../core/types.js';
 import type { RawResponse } from '../core/raw-response.js';
 
 export class DocumentTypes extends APIResource {
-  async list(params?: DocumentTypesListParams, options?: RequestOptions): Promise<Page<DocumentType>> {
+  async list(params?: DocumentTypesListParams, options?: Omit<RequestOptions, 'raw'>): Promise<Page<DocumentType>> {
     const query = params ? { ...params } : undefined;
     const response = await this._client.get<PageResponse<DocumentType>>(
       '/api/document-types',
@@ -21,14 +21,14 @@ export class DocumentTypes extends APIResource {
     });
   }
 
-  async get(id: string, options?: RequestOptions): Promise<DocumentType> {
+  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<DocumentType> {
     return this._client.get<DocumentType>(
       `/api/document-types/${id}`,
       options,
     ) as Promise<DocumentType>;
   }
 
-  async validate(id: string, options?: RequestOptions): Promise<ValidationResult> {
+  async validate(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<ValidationResult> {
     return this._client.post<ValidationResult>(
       `/api/document-types/${id}/validate`,
       undefined,
@@ -48,7 +48,7 @@ class DocumentTypesWithRawResponse {
     this._client = client;
   }
 
-  async list(params?: DocumentTypesListParams, options?: RequestOptions): Promise<RawResponse<PageResponse<DocumentType>>> {
+  async list(params?: DocumentTypesListParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<PageResponse<DocumentType>>> {
     const query = params ? { ...params } : undefined;
     return this._client.get<PageResponse<DocumentType>>(
       '/api/document-types',
@@ -56,14 +56,14 @@ class DocumentTypesWithRawResponse {
     ) as Promise<RawResponse<PageResponse<DocumentType>>>;
   }
 
-  async get(id: string, options?: RequestOptions): Promise<RawResponse<DocumentType>> {
+  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<DocumentType>> {
     return this._client.get<DocumentType>(
       `/api/document-types/${id}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<DocumentType>>;
   }
 
-  async validate(id: string, options?: RequestOptions): Promise<RawResponse<ValidationResult>> {
+  async validate(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ValidationResult>> {
     return this._client.post<ValidationResult>(
       `/api/document-types/${id}/validate`,
       undefined,

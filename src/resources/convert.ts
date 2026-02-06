@@ -17,11 +17,11 @@ type ConversionStatusWithWait = ConversionStatus & {
 };
 
 export class Convert extends APIResource {
-  async run(params: ConvertParams, options?: RequestOptions): Promise<ConversionStatus> {
+  async run(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionStatus> {
     return this._run(params, '/api/convert', options) as Promise<ConversionStatus>;
   }
 
-  async runAsync(params: ConvertParams, options?: RequestOptions): Promise<ConversionStatusWithWait> {
+  async runAsync(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionStatusWithWait> {
     const status = await this._run(params, '/api/convert-async', options) as ConversionStatus;
     return Object.assign(status, {
       wait: (pollOptions?: Partial<PollOptions<ConversionStatus>>) =>
@@ -35,7 +35,7 @@ export class Convert extends APIResource {
     });
   }
 
-  async getStatus(conversionId: string, options?: RequestOptions): Promise<ConversionStatus> {
+  async getStatus(conversionId: string, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionStatus> {
     return this._client.get<ConversionStatus>(
       `/api/convert-async/status/${conversionId}`,
       options,
@@ -43,10 +43,10 @@ export class Convert extends APIResource {
   }
 
   get withRawResponse(): ConvertWithRawResponse {
-    return new ConvertWithRawResponse(this, this._client);
+    return new ConvertWithRawResponse(this._run.bind(this), this._client);
   }
 
-  private async _run(
+  protected async _run(
     params: ConvertParams,
     path: string,
     options?: RequestOptions,
@@ -83,24 +83,30 @@ export class Convert extends APIResource {
   }
 }
 
+type ConvertRunFn = (
+  params: ConvertParams,
+  path: string,
+  options?: RequestOptions,
+) => Promise<ConversionStatus | RawResponse<ConversionStatus>>;
+
 class ConvertWithRawResponse {
-  private _resource: Convert;
+  private _run: ConvertRunFn;
   private _client: APIClient;
 
-  constructor(resource: Convert, client: APIClient) {
-    this._resource = resource;
+  constructor(run: ConvertRunFn, client: APIClient) {
+    this._run = run;
     this._client = client;
   }
 
-  async run(params: ConvertParams, options?: RequestOptions): Promise<RawResponse<ConversionStatus>> {
-    return this._resource['_run'](params, '/api/convert', { ...options, raw: true }) as Promise<RawResponse<ConversionStatus>>;
+  async run(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionStatus>> {
+    return this._run(params, '/api/convert', { ...options, raw: true }) as Promise<RawResponse<ConversionStatus>>;
   }
 
-  async runAsync(params: ConvertParams, options?: RequestOptions): Promise<RawResponse<ConversionStatus>> {
-    return this._resource['_run'](params, '/api/convert-async', { ...options, raw: true }) as Promise<RawResponse<ConversionStatus>>;
+  async runAsync(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionStatus>> {
+    return this._run(params, '/api/convert-async', { ...options, raw: true }) as Promise<RawResponse<ConversionStatus>>;
   }
 
-  async getStatus(conversionId: string, options?: RequestOptions): Promise<RawResponse<ConversionStatus>> {
+  async getStatus(conversionId: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionStatus>> {
     return this._client.get<ConversionStatus>(
       `/api/convert-async/status/${conversionId}`,
       { ...options, raw: true },

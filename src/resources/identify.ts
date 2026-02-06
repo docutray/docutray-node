@@ -17,11 +17,11 @@ type IdentificationStatusWithWait = IdentificationStatus & {
 };
 
 export class Identify extends APIResource {
-  async run(params: IdentifyParams, options?: RequestOptions): Promise<IdentificationStatus> {
+  async run(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<IdentificationStatus> {
     return this._run(params, '/api/identify', options) as Promise<IdentificationStatus>;
   }
 
-  async runAsync(params: IdentifyParams, options?: RequestOptions): Promise<IdentificationStatusWithWait> {
+  async runAsync(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<IdentificationStatusWithWait> {
     const status = await this._run(params, '/api/identify-async', options) as IdentificationStatus;
     return Object.assign(status, {
       wait: (pollOptions?: Partial<PollOptions<IdentificationStatus>>) =>
@@ -35,7 +35,7 @@ export class Identify extends APIResource {
     });
   }
 
-  async getStatus(identificationId: string, options?: RequestOptions): Promise<IdentificationStatus> {
+  async getStatus(identificationId: string, options?: Omit<RequestOptions, 'raw'>): Promise<IdentificationStatus> {
     return this._client.get<IdentificationStatus>(
       `/api/identify-async/status/${identificationId}`,
       options,
@@ -43,10 +43,10 @@ export class Identify extends APIResource {
   }
 
   get withRawResponse(): IdentifyWithRawResponse {
-    return new IdentifyWithRawResponse(this, this._client);
+    return new IdentifyWithRawResponse(this._run.bind(this), this._client);
   }
 
-  private async _run(
+  protected async _run(
     params: IdentifyParams,
     path: string,
     options?: RequestOptions,
@@ -80,24 +80,30 @@ export class Identify extends APIResource {
   }
 }
 
+type IdentifyRunFn = (
+  params: IdentifyParams,
+  path: string,
+  options?: RequestOptions,
+) => Promise<IdentificationStatus | RawResponse<IdentificationStatus>>;
+
 class IdentifyWithRawResponse {
-  private _resource: Identify;
+  private _run: IdentifyRunFn;
   private _client: APIClient;
 
-  constructor(resource: Identify, client: APIClient) {
-    this._resource = resource;
+  constructor(run: IdentifyRunFn, client: APIClient) {
+    this._run = run;
     this._client = client;
   }
 
-  async run(params: IdentifyParams, options?: RequestOptions): Promise<RawResponse<IdentificationStatus>> {
-    return this._resource['_run'](params, '/api/identify', { ...options, raw: true }) as Promise<RawResponse<IdentificationStatus>>;
+  async run(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<IdentificationStatus>> {
+    return this._run(params, '/api/identify', { ...options, raw: true }) as Promise<RawResponse<IdentificationStatus>>;
   }
 
-  async runAsync(params: IdentifyParams, options?: RequestOptions): Promise<RawResponse<IdentificationStatus>> {
-    return this._resource['_run'](params, '/api/identify-async', { ...options, raw: true }) as Promise<RawResponse<IdentificationStatus>>;
+  async runAsync(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<IdentificationStatus>> {
+    return this._run(params, '/api/identify-async', { ...options, raw: true }) as Promise<RawResponse<IdentificationStatus>>;
   }
 
-  async getStatus(identificationId: string, options?: RequestOptions): Promise<RawResponse<IdentificationStatus>> {
+  async getStatus(identificationId: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<IdentificationStatus>> {
     return this._client.get<IdentificationStatus>(
       `/api/identify-async/status/${identificationId}`,
       { ...options, raw: true },

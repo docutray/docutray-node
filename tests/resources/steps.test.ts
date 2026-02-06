@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
-import { http, HttpResponse } from 'msw';
-import { setupServer } from 'msw/node';
+import { describe, it, expect } from 'vitest';
+import { server, http, HttpResponse } from '../helpers/mock-server.js';
 import { Steps } from '../../src/resources/steps.js';
 import { APIClient } from '../../src/core/api-client.js';
 import { RawResponse } from '../../src/core/raw-response.js';
@@ -11,16 +10,10 @@ import {
   mockStepExecutionPending,
 } from '../helpers/fixtures.js';
 
-const server = setupServer();
-
 function createSteps(): Steps {
   const client = new APIClient({ apiKey: 'test-key', baseURL: TEST_BASE_URL });
   return new Steps(client);
 }
-
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
 
 describe('Steps', () => {
   describe('runAsync()', () => {
