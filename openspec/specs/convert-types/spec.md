@@ -1,7 +1,7 @@
 # convert-types Specification
 
 ## Purpose
-TBD - created by archiving change issue-5-type-definitions. Update Purpose after archive.
+TypeScript types and helper functions for document conversion operations: conversion status, results, request parameters, and type guards.
 ## Requirements
 ### Requirement: ConversionStatusType union
 The SDK SHALL export a `ConversionStatusType` type as a string union: `"ENQUEUED" | "PROCESSING" | "SUCCESS" | "ERROR"`.

@@ -37,20 +37,26 @@ export interface StepsRunParams {
 /**
  * Returns `true` if the step execution has reached a terminal state (SUCCESS or ERROR).
  */
-export function isStepExecutionComplete(status: StepExecutionStatus): boolean {
+export function isStepExecutionComplete(
+  status: StepExecutionStatus,
+): status is StepExecutionStatus & { status: 'SUCCESS' | 'ERROR' } {
   return status.status === 'SUCCESS' || status.status === 'ERROR';
 }
 
 /**
  * Returns `true` if the step execution completed successfully.
  */
-export function isStepExecutionSuccess(status: StepExecutionStatus): boolean {
+export function isStepExecutionSuccess(
+  status: StepExecutionStatus,
+): status is StepExecutionStatus & { status: 'SUCCESS' } {
   return status.status === 'SUCCESS';
 }
 
 /**
  * Returns `true` if the step execution failed with an error.
  */
-export function isStepExecutionError(status: StepExecutionStatus): boolean {
+export function isStepExecutionError(
+  status: StepExecutionStatus,
+): status is StepExecutionStatus & { status: 'ERROR' } {
   return status.status === 'ERROR';
 }

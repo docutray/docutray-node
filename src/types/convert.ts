@@ -45,20 +45,26 @@ export interface ConvertParams {
 /**
  * Returns `true` if the conversion has reached a terminal state (SUCCESS or ERROR).
  */
-export function isConversionComplete(status: ConversionStatus): boolean {
+export function isConversionComplete(
+  status: ConversionStatus,
+): status is ConversionStatus & { status: 'SUCCESS' | 'ERROR' } {
   return status.status === 'SUCCESS' || status.status === 'ERROR';
 }
 
 /**
  * Returns `true` if the conversion completed successfully.
  */
-export function isConversionSuccess(status: ConversionStatus): boolean {
+export function isConversionSuccess(
+  status: ConversionStatus,
+): status is ConversionStatus & { status: 'SUCCESS' } {
   return status.status === 'SUCCESS';
 }
 
 /**
  * Returns `true` if the conversion failed with an error.
  */
-export function isConversionError(status: ConversionStatus): boolean {
+export function isConversionError(
+  status: ConversionStatus,
+): status is ConversionStatus & { status: 'ERROR' } {
   return status.status === 'ERROR';
 }

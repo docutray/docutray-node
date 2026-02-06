@@ -54,20 +54,26 @@ export interface IdentifyParams {
 /**
  * Returns `true` if the identification has reached a terminal state (SUCCESS or ERROR).
  */
-export function isIdentificationComplete(status: IdentificationStatus): boolean {
+export function isIdentificationComplete(
+  status: IdentificationStatus,
+): status is IdentificationStatus & { status: 'SUCCESS' | 'ERROR' } {
   return status.status === 'SUCCESS' || status.status === 'ERROR';
 }
 
 /**
  * Returns `true` if the identification completed successfully.
  */
-export function isIdentificationSuccess(status: IdentificationStatus): boolean {
+export function isIdentificationSuccess(
+  status: IdentificationStatus,
+): status is IdentificationStatus & { status: 'SUCCESS' } {
   return status.status === 'SUCCESS';
 }
 
 /**
  * Returns `true` if the identification failed with an error.
  */
-export function isIdentificationError(status: IdentificationStatus): boolean {
+export function isIdentificationError(
+  status: IdentificationStatus,
+): status is IdentificationStatus & { status: 'ERROR' } {
   return status.status === 'ERROR';
 }

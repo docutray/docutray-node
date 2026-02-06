@@ -1,7 +1,7 @@
 # document-type-types Specification
 
 ## Purpose
-TBD - created by archiving change issue-5-type-definitions. Update Purpose after archive.
+TypeScript types and helper functions for document type definitions, validation results, and listing parameters.
 ## Requirements
 ### Requirement: DocumentType interface
 The SDK SHALL export a `DocumentType` interface with properties: `id` (string), `name` (string), `codeType` (string), `description` (string | null), `isPublic` (boolean), `isDraft` (boolean), `createdAt` (string | null, ISO 8601), `updatedAt` (string | null, ISO 8601), `schema` (Record<string, unknown> | null).

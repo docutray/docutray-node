@@ -27,11 +27,12 @@ export type ImageContentType =
 
 /**
  * Rate limit information extracted from API response headers.
+ * `reset` is the time when the limit resets, expressed as epoch seconds.
  */
 export interface RateLimitInfo {
   limit: number;
   remaining: number;
-  reset: string;
+  reset: number;
 }
 
 /**

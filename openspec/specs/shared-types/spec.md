@@ -1,7 +1,7 @@
 # shared-types Specification
 
 ## Purpose
-TBD - created by archiving change issue-5-type-definitions. Update Purpose after archive.
+Common TypeScript types and interfaces (pagination, rate limiting, quota, image content types, error details) shared across the SDK for consistent API response typing.
 ## Requirements
 ### Requirement: Pagination interface
 The SDK SHALL export a `Pagination` interface with properties: `total` (number), `page` (number), `limit` (number).
@@ -29,7 +29,7 @@ The SDK SHALL export an `ImageContentType` type as a string union of accepted im
 - **THEN** it SHALL produce a TypeScript compilation error
 
 ### Requirement: RateLimitInfo interface
-The SDK SHALL export a `RateLimitInfo` interface with properties: `limit` (number), `remaining` (number), `reset` (string, ISO 8601 timestamp).
+The SDK SHALL export a `RateLimitInfo` interface with properties: `limit` (number), `remaining` (number), `reset` (number, epoch seconds).
 
 #### Scenario: Rate limit header data
 - **WHEN** rate limit headers are parsed from an API response

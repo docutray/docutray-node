@@ -1,7 +1,7 @@
 # identify-types Specification
 
 ## Purpose
-TBD - created by archiving change issue-5-type-definitions. Update Purpose after archive.
+TypeScript types and type-guard functions for document identification: statuses, results, match models, and input parameters.
 ## Requirements
 ### Requirement: IdentificationStatusType union
 The SDK SHALL export an `IdentificationStatusType` type as a string union: `"ENQUEUED" | "PROCESSING" | "SUCCESS" | "ERROR"`.

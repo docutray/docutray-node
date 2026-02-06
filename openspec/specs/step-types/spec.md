@@ -1,7 +1,7 @@
 # step-types Specification
 
 ## Purpose
-TBD - created by archiving change issue-5-type-definitions. Update Purpose after archive.
+TypeScript types and helper functions for step execution: status tracking, run parameters, and type guards.
 ## Requirements
 ### Requirement: StepExecutionStatusType union
 The SDK SHALL export a `StepExecutionStatusType` type as a string union: `"ENQUEUED" | "PROCESSING" | "SUCCESS" | "ERROR"`.

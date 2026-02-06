@@ -1,7 +1,7 @@
 # knowledge-base-types Specification
 
 ## Purpose
-TBD - created by archiving change issue-5-type-definitions. Update Purpose after archive.
+TypeScript types for knowledge bases: KB models, documents, search results, and sync operations.
 ## Requirements
 ### Requirement: KnowledgeBase interface
 The SDK SHALL export a `KnowledgeBase` interface with properties: `id` (string), `name` (string), `description` (string | null), `schema` (Record<string, unknown> | null), `isActive` (boolean), `createdAt` (string | null, ISO 8601), `updatedAt` (string | null, ISO 8601), `documentCount` (number | null).
