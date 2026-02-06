@@ -80,6 +80,8 @@ export class APIClient {
         if (body !== undefined && method !== 'GET') {
           if (body instanceof FormData) {
             fetchOptions.body = body;
+            delete (fetchOptions.headers as Record<string, string>)['Content-Type'];
+            delete (fetchOptions.headers as Record<string, string>)['content-type'];
           } else {
             (fetchOptions.headers as Record<string, string>)['Content-Type'] = 'application/json';
             fetchOptions.body = JSON.stringify(body);

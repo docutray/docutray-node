@@ -314,6 +314,20 @@ describe('APIClient', () => {
 
       expect(init?.body).toBeInstanceOf(FormData);
     });
+
+    it('strips Content-Type from options.headers when body is FormData', async () => {
+      const formData = new FormData();
+      formData.append('image', new Blob(['data']), 'test.pdf');
+
+      await client.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const [, init] = mockFetch.mock.calls[0];
+      const headers = init?.headers as Record<string, string>;
+
+      expect(headers['Content-Type']).toBeUndefined();
+      expect(headers['content-type']).toBeUndefined();
+    });
   });
 
   describe('query parameters', () => {

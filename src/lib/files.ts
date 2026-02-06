@@ -58,27 +58,33 @@ export function prepareFileUpload(
   let contentType: string;
 
   if (isFileWithMetadata(file)) {
-    blob = Buffer.isBuffer(file.content)
-      ? new Blob([new Uint8Array(file.content)])
-      : file.content;
     filename = file.filename;
     contentType = file.contentType ?? detectContentType(file.filename);
+    blob = Buffer.isBuffer(file.content)
+      ? new Blob([new Uint8Array(file.content)], { type: contentType })
+      : new Blob([file.content], { type: contentType });
   } else if (Buffer.isBuffer(file)) {
     filename = options?.filename ?? DEFAULT_FILENAME;
     contentType = options?.contentType
       ?? (options?.filename ? detectContentType(options.filename) : DEFAULT_CONTENT_TYPE);
-    blob = new Blob([new Uint8Array(file)]);
+    blob = new Blob([new Uint8Array(file)], { type: contentType });
   } else if (file instanceof ArrayBuffer) {
     filename = options?.filename ?? DEFAULT_FILENAME;
     contentType = options?.contentType
       ?? (options?.filename ? detectContentType(options.filename) : DEFAULT_CONTENT_TYPE);
-    blob = new Blob([file]);
+    blob = new Blob([file], { type: contentType });
   } else {
-    // Blob
-    filename = options?.filename ?? DEFAULT_FILENAME;
+    // Blob or File
+    const fileObj = file as { name?: unknown; type?: unknown };
+    const inferredName = typeof fileObj.name === 'string' && fileObj.name ? fileObj.name : undefined;
+    const inferredType = typeof fileObj.type === 'string' && fileObj.type ? fileObj.type : undefined;
+
+    filename = options?.filename ?? inferredName ?? DEFAULT_FILENAME;
     contentType = options?.contentType
-      ?? (options?.filename ? detectContentType(options.filename) : DEFAULT_CONTENT_TYPE);
-    blob = file;
+      ?? (options?.filename
+        ? detectContentType(options.filename)
+        : inferredType ?? (inferredName ? detectContentType(inferredName) : DEFAULT_CONTENT_TYPE));
+    blob = new Blob([file], { type: contentType });
   }
 
   const formData = new FormData();

@@ -68,8 +68,9 @@ describe('prepareFileUpload', () => {
 
     expect(result.formData).toBeInstanceOf(FormData);
     expect(result.contentType).toBe('application/pdf');
-    const file = result.formData.get('image');
+    const file = result.formData.get('image') as File;
     expect(file).toBeTruthy();
+    expect(file.type).toBe('application/pdf');
   });
 
   it('handles Buffer with custom filename', () => {
@@ -79,6 +80,7 @@ describe('prepareFileUpload', () => {
     expect(result.contentType).toBe('image/png');
     const file = result.formData.get('image') as File;
     expect(file.name).toBe('photo.png');
+    expect(file.type).toBe('image/png');
   });
 
   it('handles Buffer with explicit contentType', () => {
@@ -97,13 +99,24 @@ describe('prepareFileUpload', () => {
 
     expect(result.formData).toBeInstanceOf(FormData);
     expect(result.contentType).toBe('application/pdf');
+    const file = result.formData.get('image') as File;
+    expect(file.type).toBe('application/pdf');
   });
 
-  it('handles Blob input', () => {
+  it('handles Blob input and infers type from Blob', () => {
     const blob = new Blob(['content'], { type: 'image/jpeg' });
     const result = prepareFileUpload(blob);
 
     expect(result.formData).toBeInstanceOf(FormData);
+    expect(result.contentType).toBe('image/jpeg');
+    const file = result.formData.get('image') as File;
+    expect(file.type).toBe('image/jpeg');
+  });
+
+  it('uses default content type for Blob without type', () => {
+    const blob = new Blob(['content']);
+    const result = prepareFileUpload(blob);
+
     expect(result.contentType).toBe('application/pdf');
   });
 
@@ -124,6 +137,7 @@ describe('prepareFileUpload', () => {
     expect(result.contentType).toBe('application/pdf');
     const file = result.formData.get('image') as File;
     expect(file.name).toBe('invoice.pdf');
+    expect(file.type).toBe('application/pdf');
   });
 
   it('handles FileWithMetadata with explicit contentType', () => {
@@ -142,6 +156,25 @@ describe('prepareFileUpload', () => {
 
     const file = result.formData.get('image') as File;
     expect(file.name).toBe('document');
+  });
+
+  it('infers name and type from File object', () => {
+    const file = new File(['data'], 'receipt.png', { type: 'image/png' });
+    const result = prepareFileUpload(file);
+
+    expect(result.contentType).toBe('image/png');
+    const entry = result.formData.get('image') as File;
+    expect(entry.name).toBe('receipt.png');
+    expect(entry.type).toBe('image/png');
+  });
+
+  it('prefers options over File inferred values', () => {
+    const file = new File(['data'], 'receipt.png', { type: 'image/png' });
+    const result = prepareFileUpload(file, { filename: 'custom.pdf', contentType: 'application/pdf' });
+
+    expect(result.contentType).toBe('application/pdf');
+    const entry = result.formData.get('image') as File;
+    expect(entry.name).toBe('custom.pdf');
   });
 
   it('uses "image" as FormData field name', () => {
