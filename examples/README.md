@@ -31,3 +31,4 @@ Usage examples for the DocuTray Node.js SDK.
 - Running examples will consume API credits.
 - All examples use the `DOCUTRAY_API_KEY` environment variable for authentication.
 - Steps also require `DOCUTRAY_STEP_ID` in `.env`.
+- A `sample_invoice.pdf` file is included for testing. Examples use it by default.
