@@ -45,8 +45,8 @@ Integration tests SHALL verify async polling works end-to-end through the `DocuT
 - **THEN** the final result SHALL have status SUCCESS
 
 #### Scenario: Polling lifecycle failure
-- **WHEN** polling encounters a FAILED status
-- **THEN** `wait()` SHALL throw `DocuTrayError`
+- **WHEN** polling encounters an ERROR status
+- **THEN** `wait()` SHALL resolve with the status object containing `status: 'ERROR'` and the error message
 
 #### Scenario: Polling timeout
 - **WHEN** the server never transitions to a terminal state within the timeout
