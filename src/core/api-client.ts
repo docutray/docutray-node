@@ -63,11 +63,25 @@ export class APIClient {
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      // Bail immediately if the caller already aborted
+      if (options.signal?.aborted) {
+        throw new APITimeoutError(
+          `Request to ${method} ${path} was aborted`,
+        );
+      }
 
+      const controller = new AbortController();
+      let timedOut = false;
+      const timeoutId = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, timeout);
+
+      // Forward caller's abort signal, storing the handler for cleanup
+      let onSignalAbort: (() => void) | undefined;
       if (options.signal) {
-        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+        onSignalAbort = () => controller.abort();
+        options.signal.addEventListener('abort', onSignalAbort, { once: true });
       }
 
       try {
@@ -90,6 +104,9 @@ export class APIClient {
 
         const response = await this._fetch(url, fetchOptions);
         clearTimeout(timeoutId);
+        if (onSignalAbort && options.signal) {
+          options.signal.removeEventListener('abort', onSignalAbort);
+        }
 
         if (response.ok) {
           if (options.raw) {
@@ -133,12 +150,23 @@ export class APIClient {
         throw apiError;
       } catch (error) {
         clearTimeout(timeoutId);
+        if (onSignalAbort && options.signal) {
+          options.signal.removeEventListener('abort', onSignalAbort);
+        }
 
         if (error instanceof APIError) {
           throw error;
         }
 
         if (error instanceof Error && error.name === 'AbortError') {
+          // User-initiated cancellation: throw immediately, don't retry
+          if (!timedOut) {
+            throw new APITimeoutError(
+              `Request to ${method} ${path} was aborted`,
+            );
+          }
+
+          // Internal timeout: may retry
           const timeoutError = new APITimeoutError(
             `Request to ${method} ${path} timed out after ${timeout}ms`,
           );
