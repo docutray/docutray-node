@@ -33,7 +33,6 @@ export class APIClient {
     return {
       'Authorization': `Bearer ${this.apiKey}`,
       'User-Agent': `docutray-node/${VERSION}`,
-      'Content-Type': 'application/json',
       ...extra,
     };
   }
@@ -79,7 +78,14 @@ export class APIClient {
         };
 
         if (body !== undefined && method !== 'GET') {
-          fetchOptions.body = JSON.stringify(body);
+          if (body instanceof FormData) {
+            fetchOptions.body = body;
+            delete (fetchOptions.headers as Record<string, string>)['Content-Type'];
+            delete (fetchOptions.headers as Record<string, string>)['content-type'];
+          } else {
+            (fetchOptions.headers as Record<string, string>)['Content-Type'] = 'application/json';
+            fetchOptions.body = JSON.stringify(body);
+          }
         }
 
         const response = await this._fetch(url, fetchOptions);
