@@ -55,3 +55,48 @@ export { calculateRetryDelay, shouldRetry } from './core/retry.js';
 
 // Resource base
 export { APIResource } from './resource.js';
+
+// Resource types
+export type {
+  Pagination,
+  PaginatedResponse,
+  ImageContentType,
+  RateLimitInfo,
+  QuotaExceededInfo,
+  ErrorDetail,
+  ConversionStatusType,
+  ConversionResult,
+  ConversionStatus,
+  ConvertParams,
+  IdentificationStatusType,
+  DocumentTypeMatch,
+  IdentificationResult,
+  IdentificationStatus,
+  IdentifyParams,
+  DocumentType,
+  ValidationErrorInfo,
+  ValidationWarningInfo,
+  ValidationResult,
+  DocumentTypesListParams,
+  StepExecutionStatusType,
+  StepExecutionStatus,
+  StepsRunParams,
+  KnowledgeBase,
+  KnowledgeBaseDocument,
+  SearchResultItem,
+  SearchResult,
+  SyncResult,
+} from './types/index.js';
+export {
+  isConversionComplete,
+  isConversionSuccess,
+  isConversionError,
+  isIdentificationComplete,
+  isIdentificationSuccess,
+  isIdentificationError,
+  isValidationValid,
+  hasValidationWarnings,
+  isStepExecutionComplete,
+  isStepExecutionSuccess,
+  isStepExecutionError,
+} from './types/index.js';
