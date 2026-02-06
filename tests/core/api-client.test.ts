@@ -255,6 +255,14 @@ describe('APIClient', () => {
       const body = await result.parse();
       expect(body).toEqual({ ok: true });
     });
+
+    it('RawResponse.parse() can be called multiple times', async () => {
+      const result = (await client.get('/test', { raw: true })) as RawResponse<{ ok: boolean }>;
+      const first = await result.parse();
+      const second = await result.parse();
+      expect(first).toEqual({ ok: true });
+      expect(second).toEqual({ ok: true });
+    });
   });
 
   describe('injectable fetch', () => {

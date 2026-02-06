@@ -2,6 +2,7 @@ export class RawResponse<T> {
   readonly statusCode: number;
   readonly headers: Headers;
   private readonly response: Response;
+  private parsed: { value: T } | undefined;
 
   constructor(response: Response) {
     this.response = response;
@@ -10,10 +11,17 @@ export class RawResponse<T> {
   }
 
   async parse(): Promise<T> {
-    const contentType = this.headers.get('content-type') ?? '';
-    if (contentType.includes('application/json')) {
-      return (await this.response.json()) as T;
+    if (this.parsed) {
+      return this.parsed.value;
     }
-    return (await this.response.text()) as T;
+    const contentType = this.headers.get('content-type') ?? '';
+    let value: T;
+    if (contentType.includes('application/json')) {
+      value = (await this.response.json()) as T;
+    } else {
+      value = (await this.response.text()) as T;
+    }
+    this.parsed = { value };
+    return value;
   }
 }

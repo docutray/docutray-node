@@ -51,8 +51,8 @@ describe('waitForCompletion', () => {
       waitForCompletion<MockStatus>({
         getStatus: async () => ({ status: 'pending' }),
         isComplete: (s) => s.status === 'completed',
-        pollInterval: 20,
-        timeout: 50,
+        pollInterval: 10,
+        timeout: 30,
       }),
     ).rejects.toThrow(APITimeoutError);
   });

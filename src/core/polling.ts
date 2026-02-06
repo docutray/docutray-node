@@ -41,13 +41,13 @@ export async function waitForCompletion<T>(options: PollOptions<T>): Promise<T> 
       throw new DocuTrayError(message);
     }
 
+    await sleep(pollInterval);
+
     const elapsed = Date.now() - startTime;
-    if (elapsed + pollInterval > timeout) {
+    if (elapsed >= timeout) {
       throw new APITimeoutError(
         `Polling timed out after ${timeout}ms`,
       );
     }
-
-    await sleep(pollInterval);
   }
 }

@@ -1,3 +1,9 @@
+function parseNumericHeader(value: string | null): number | undefined {
+  if (value === null) return undefined;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
 export class DocuTrayError extends Error {
   constructor(message: string) {
     super(message);
@@ -160,19 +166,13 @@ export class RateLimitError extends APIError {
     super(statusCode, body, message, headers);
     this.name = 'RateLimitError';
 
-    const retryAfterHeader = headers.get('retry-after');
-    this.retryAfter = retryAfterHeader ? Number(retryAfterHeader) : undefined;
-
+    this.retryAfter = parseNumericHeader(headers.get('retry-after'));
     this.limitType = headers.get('x-ratelimit-limit-type') ?? undefined;
+    this.limit = parseNumericHeader(headers.get('x-ratelimit-limit'));
+    this.remaining = parseNumericHeader(headers.get('x-ratelimit-remaining'));
 
-    const limitHeader = headers.get('x-ratelimit-limit');
-    this.limit = limitHeader ? Number(limitHeader) : undefined;
-
-    const remainingHeader = headers.get('x-ratelimit-remaining');
-    this.remaining = remainingHeader ? Number(remainingHeader) : undefined;
-
-    const resetHeader = headers.get('x-ratelimit-reset');
-    this.resetTime = resetHeader ? new Date(Number(resetHeader) * 1000) : undefined;
+    const resetSeconds = parseNumericHeader(headers.get('x-ratelimit-reset'));
+    this.resetTime = resetSeconds !== undefined ? new Date(resetSeconds * 1000) : undefined;
   }
 }
 

@@ -117,4 +117,18 @@ describe('RateLimitError', () => {
     expect(error.remaining).toBeUndefined();
     expect(error.resetTime).toBeUndefined();
   });
+
+  it('handles non-numeric rate limit headers as undefined', () => {
+    const headers = new Headers({
+      'retry-after': 'abc',
+      'x-ratelimit-limit': 'invalid',
+      'x-ratelimit-remaining': 'n/a',
+      'x-ratelimit-reset': 'not-a-number',
+    });
+    const error = new RateLimitError(429, {}, 'Rate limited', headers);
+    expect(error.retryAfter).toBeUndefined();
+    expect(error.limit).toBeUndefined();
+    expect(error.remaining).toBeUndefined();
+    expect(error.resetTime).toBeUndefined();
+  });
 });
