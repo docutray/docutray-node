@@ -7,16 +7,10 @@ Usage examples for the DocuTray Node.js SDK.
 1. Copy `.env.example` to `.env` and add your API key:
 
    ```bash
-   cp .env.example .env
+   cp examples/.env.example examples/.env
    ```
 
-2. Install [tsx](https://github.com/privatenumber/tsx) for running TypeScript directly:
-
-   ```bash
-   npm install -g tsx
-   ```
-
-3. Run any example:
+2. Run any example:
 
    ```bash
    npx tsx examples/convert.ts
@@ -26,14 +20,14 @@ Usage examples for the DocuTray Node.js SDK.
 
 | File | Description |
 |------|-------------|
-| `convert.ts` | Document conversion (sync and async with polling) |
-| `identify.ts` | Document type identification |
+| `convert.ts` | Document conversion (file, URL, base64; sync and async with polling) |
+| `identify.ts` | Document type identification (file, URL, base64; sync and async) |
+| `steps.ts` | Running predefined processing steps (file, URL, base64; async with polling) |
 | `document-types.ts` | Listing, retrieving, and validating document types |
-| `steps.ts` | Running predefined processing steps |
-| `knowledge-bases.ts` | Managing knowledge bases, documents, and semantic search |
 
 ## Notes
 
-- Each example contains commented-out function calls. Uncomment the ones you want to run.
+- Each example runs a single variant by default. Uncomment other function calls at the bottom of the file to try different input methods or async modes.
 - Running examples will consume API credits.
 - All examples use the `DOCUTRAY_API_KEY` environment variable for authentication.
+- Steps also require `DOCUTRAY_STEP_ID` in `.env`.

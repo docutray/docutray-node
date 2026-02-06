@@ -9,19 +9,41 @@
  * Usage: npx tsx examples/convert.ts
  */
 
+import { config } from 'dotenv';
+import { readFileSync } from 'node:fs';
+
+config({ path: new URL('.env', import.meta.url) });
 import DocuTray, { isConversionSuccess } from 'docutray';
 
 const client = new DocuTray();
+
+async function convertFromFile() {
+  console.log('--- Synchronous conversion from file ---');
+
+  const result = await client.convert.run({
+    documentTypeCode: 'invoice',
+    file: readFileSync(new URL('sample_invoice.pdf', import.meta.url)),
+    filename: 'sample_invoice.pdf',
+  });
+
+  if (result.data) {
+    console.log('Conversion successful!');
+    console.log('Extracted data:', JSON.stringify(result.data, null, 2));
+  } else {
+    console.log('Status:', result.status);
+    if (result.error) console.error('Error:', result.error);
+  }
+}
 
 async function convertFromUrl() {
   console.log('--- Synchronous conversion from URL ---');
 
   const result = await client.convert.run({
     documentTypeCode: 'invoice',
-    url: 'https://example.com/invoice.pdf',
+    url: 'https://storage.googleapis.com/public.docutray.com/api-examples/sample_invoice.pdf',
   });
 
-  if (isConversionSuccess(result)) {
+  if (result.data) {
     console.log('Conversion successful!');
     console.log('Extracted data:', JSON.stringify(result.data, null, 2));
   } else {
@@ -31,36 +53,46 @@ async function convertFromUrl() {
 }
 
 async function convertAsync() {
-  console.log('\n--- Asynchronous conversion with polling ---');
+  console.log('--- Asynchronous conversion with polling ---');
 
   const status = await client.convert.runAsync({
     documentTypeCode: 'invoice',
-    url: 'https://example.com/invoice.pdf',
+    url: 'https://storage.googleapis.com/public.docutray.com/api-examples/sample_invoice.pdf',
   });
 
-  console.log('Conversion enqueued:', status.conversionId);
+  console.log('Enqueued:', JSON.stringify(status, null, 2));
 
   const result = await status.wait({
     onStatus: (s) => console.log('  Polling...', s.status),
   });
 
-  if (isConversionSuccess(result)) {
+  console.log('Final:', JSON.stringify(result, null, 2));
+}
+
+async function convertFromBase64() {
+  console.log('--- Synchronous conversion from base64 ---');
+
+  const base64 = readFileSync(new URL('sample_invoice.pdf', import.meta.url)).toString('base64');
+
+  const result = await client.convert.run({
+    documentTypeCode: 'invoice',
+    base64,
+    contentType: 'application/pdf',
+  });
+
+  if (result.data) {
     console.log('Conversion successful!');
     console.log('Extracted data:', JSON.stringify(result.data, null, 2));
   } else {
-    console.error('Conversion failed:', result.error);
+    console.log('Status:', result.status);
+    if (result.error) console.error('Error:', result.error);
   }
 }
 
-// Uncomment the function you want to run:
-// convertFromUrl();
-// convertAsync();
+// Run the file conversion example (sync):
+convertFromFile();
 
-// Alternative: conversion from file
-// import { readFileSync } from 'node:fs';
-//
-// const result = await client.convert.run({
-//   documentTypeCode: 'invoice',
-//   file: readFileSync('invoice.pdf'),
-//   filename: 'invoice.pdf',
-// });
+// Uncomment for other examples:
+// convertFromUrl();
+// convertFromBase64();
+// convertAsync();

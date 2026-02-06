@@ -1,5 +1,5 @@
 /** Default base URL for the DocuTray API. */
-export const DEFAULT_BASE_URL = 'https://api.docutray.com/v1';
+export const DEFAULT_BASE_URL = 'https://app.docutray.com';
 /** Default request timeout in milliseconds (60 seconds). */
 export const DEFAULT_TIMEOUT = 60_000;
 /** Default maximum number of retry attempts. */

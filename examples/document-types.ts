@@ -8,7 +8,10 @@
  * Usage: npx tsx examples/document-types.ts
  */
 
+import { config } from 'dotenv';
 import DocuTray, { isValidationValid, hasValidationWarnings } from 'docutray';
+
+config({ path: new URL('.env', import.meta.url) });
 
 const client = new DocuTray();
 

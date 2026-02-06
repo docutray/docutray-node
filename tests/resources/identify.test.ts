@@ -32,7 +32,7 @@ describe('Identify', () => {
         filename: 'test.pdf',
       });
 
-      expect(result.identificationId).toBe('id-456');
+      expect(result.id).toBe('id-456');
       expect(receivedContentType).toContain('multipart/form-data');
     });
 
@@ -50,7 +50,7 @@ describe('Identify', () => {
         url: 'https://example.com/doc.pdf',
       });
 
-      expect(result.identificationId).toBe('id-456');
+      expect(result.id).toBe('id-456');
       expect(receivedBody.image_url).toBe('https://example.com/doc.pdf');
     });
 
@@ -92,7 +92,7 @@ describe('Identify', () => {
         url: 'https://example.com/doc.pdf',
       });
 
-      expect(status.identificationId).toBe('id-456');
+      expect(status.id).toBe('id-456');
       expect(typeof status.wait).toBe('function');
     });
 
@@ -132,7 +132,7 @@ describe('Identify', () => {
 
       const identify = createIdentify();
       const result = await identify.getStatus('id-456');
-      expect(result.identificationId).toBe('id-456');
+      expect(result.id).toBe('id-456');
       expect(result.status).toBe('SUCCESS');
     });
   });

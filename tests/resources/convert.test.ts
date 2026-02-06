@@ -33,7 +33,7 @@ describe('Convert', () => {
         filename: 'test.pdf',
       });
 
-      expect(result.conversionId).toBe('conv-123');
+      expect(result.conversion_id).toBe('conv-123');
       expect(receivedContentType).toContain('multipart/form-data');
     });
 
@@ -52,9 +52,9 @@ describe('Convert', () => {
         url: 'https://example.com/doc.pdf',
       });
 
-      expect(result.conversionId).toBe('conv-123');
+      expect(result.conversion_id).toBe('conv-123');
       expect(receivedBody.image_url).toBe('https://example.com/doc.pdf');
-      expect(receivedBody.documentTypeCode).toBe('invoice');
+      expect(receivedBody.document_type_code).toBe('invoice');
     });
 
     it('posts JSON when base64 is provided', async () => {
@@ -73,7 +73,7 @@ describe('Convert', () => {
         contentType: 'application/pdf',
       });
 
-      expect(result.conversionId).toBe('conv-123');
+      expect(result.conversion_id).toBe('conv-123');
       expect(receivedBody.image_base64).toBe('dGVzdA==');
       expect(receivedBody.image_content_type).toBe('application/pdf');
     });
@@ -103,7 +103,7 @@ describe('Convert', () => {
         url: 'https://example.com/doc.pdf',
       });
 
-      expect(status.conversionId).toBe('conv-123');
+      expect(status.conversion_id).toBe('conv-123');
       expect(status.status).toBe('ENQUEUED');
       expect(typeof status.wait).toBe('function');
     });
@@ -145,7 +145,7 @@ describe('Convert', () => {
 
       const convert = createConvert();
       const result = await convert.getStatus('conv-123');
-      expect(result.conversionId).toBe('conv-123');
+      expect(result.conversion_id).toBe('conv-123');
       expect(result.status).toBe('SUCCESS');
     });
   });
@@ -167,7 +167,7 @@ describe('Convert', () => {
       expect(raw).toBeInstanceOf(RawResponse);
       expect(raw.statusCode).toBe(200);
       const parsed = await raw.parse();
-      expect(parsed.conversionId).toBe('conv-123');
+      expect(parsed.conversion_id).toBe('conv-123');
     });
 
     it('returns RawResponse for getStatus()', async () => {

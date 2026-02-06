@@ -33,19 +33,19 @@ export interface IdentificationResult {
  */
 export interface IdentificationStatus {
   /** Unique identifier for this identification. */
-  identificationId: string;
+  id: string;
   /** Current status of the identification. */
   status: IdentificationStatusType;
   /** URL to poll for status updates. */
-  statusUrl: string | null;
+  status_url: string | null;
   /** Timestamp when the identification was requested. */
-  requestTimestamp: string | null;
+  request_timestamp: string | null;
   /** Timestamp when the identification completed. */
-  responseTimestamp: string | null;
+  response_timestamp: string | null;
   /** The original filename of the uploaded document. */
-  originalFilename: string | null;
+  original_filename: string | null;
   /** The best-matching document type (populated on success). */
-  documentType: DocumentTypeMatch | null;
+  document_type: DocumentTypeMatch | null;
   /** Alternative document type matches (populated on success). */
   alternatives: DocumentTypeMatch[] | null;
   /** Error message (populated on failure). */
@@ -68,6 +68,8 @@ export interface IdentifyParams {
   contentType?: ImageContentType;
   /** Filename hint for content type detection. */
   filename?: string;
+  /** Restrict identification to these document type codes. */
+  documentTypeCodeOptions?: string[];
   /** When `true`, the API waits for identification to complete before responding. */
   wait?: boolean;
   /** URL to receive a webhook notification when identification completes. */

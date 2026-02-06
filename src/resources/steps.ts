@@ -46,7 +46,7 @@ export class Steps extends APIResource {
     return Object.assign(status, {
       wait: (pollOptions?: Partial<PollOptions<StepExecutionStatus>>) =>
         waitForCompletion<StepExecutionStatus>({
-          getStatus: () => this.getStatus(status.executionId, options),
+          getStatus: () => this.getStatus(status.id, options),
           isComplete: isStepExecutionComplete,
           isFailed: isStepExecutionError,
           getError: (s) => {
@@ -85,29 +85,34 @@ export class Steps extends APIResource {
     params: StepsRunParams,
     options?: RequestOptions,
   ): Promise<StepExecutionStatus | RawResponse<StepExecutionStatus>> {
-    const { stepId, file, url, base64, contentType, filename, ...rest } = params;
+    const { stepId, file, url, base64, contentType, filename, documentMetadata, ...rest } = params;
     const path = `/api/steps-async/${stepId}`;
 
     if (file) {
       const { formData } = prepareFileUpload(file, { filename, contentType });
-      if (rest.webhookUrl) formData.append('webhookUrl', rest.webhookUrl);
+      if (documentMetadata) formData.append('document_metadata', JSON.stringify(documentMetadata));
+      if (rest.webhookUrl) formData.append('webhook_url', rest.webhookUrl);
       if (rest.wait !== undefined) formData.append('wait', String(rest.wait));
       return this._client.post<StepExecutionStatus>(path, formData, options);
     }
 
     if (url) {
-      const body = {
+      const body: Record<string, unknown> = {
         ...prepareUrlUpload(url, contentType),
-        ...rest,
       };
+      if (documentMetadata) body.document_metadata = documentMetadata;
+      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
+      if (rest.wait !== undefined) body.wait = rest.wait;
       return this._client.post<StepExecutionStatus>(path, body, options);
     }
 
     if (base64) {
-      const body = {
+      const body: Record<string, unknown> = {
         ...prepareBase64Upload(base64, contentType),
-        ...rest,
       };
+      if (documentMetadata) body.document_metadata = documentMetadata;
+      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
+      if (rest.wait !== undefined) body.wait = rest.wait;
       return this._client.post<StepExecutionStatus>(path, body, options);
     }
 

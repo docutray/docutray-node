@@ -9,51 +9,72 @@
  * Usage: npx tsx examples/identify.ts
  */
 
-import DocuTray, { isIdentificationSuccess } from 'docutray';
+import { config } from 'dotenv';
+import { readFileSync } from 'node:fs';
+import DocuTray from 'docutray';
+
+config({ path: new URL('.env', import.meta.url) });
 
 const client = new DocuTray();
+
+async function identifyFromFile() {
+  console.log('--- Synchronous identification from file ---');
+
+  const result = await client.identify.run({
+    file: readFileSync(new URL('sample_invoice.pdf', import.meta.url)),
+    filename: 'sample_invoice.pdf',
+    documentTypeCodeOptions: ['invoice'],
+  });
+
+  console.log('Result:', JSON.stringify(result, null, 2));
+}
 
 async function identifyFromUrl() {
   console.log('--- Synchronous identification from URL ---');
 
   const result = await client.identify.run({
-    url: 'https://example.com/document.pdf',
+    url: 'https://storage.googleapis.com/public.docutray.com/api-examples/sample_invoice.pdf',
+    documentTypeCodeOptions: ['invoice'],
   });
 
-  if (isIdentificationSuccess(result)) {
-    console.log('Best match:', result.documentType?.name);
-    console.log('Confidence:', result.documentType?.confidence);
-    console.log('Alternatives:');
-    for (const alt of result.alternatives ?? []) {
-      console.log(`  - ${alt.name}: ${alt.confidence}`);
-    }
-  } else {
-    console.log('Status:', result.status);
-    if (result.error) console.error('Error:', result.error);
-  }
+  console.log('Result:', JSON.stringify(result, null, 2));
 }
 
 async function identifyAsync() {
-  console.log('\n--- Asynchronous identification with polling ---');
+  console.log('--- Asynchronous identification with polling ---');
 
   const status = await client.identify.runAsync({
-    url: 'https://example.com/document.pdf',
+    url: 'https://storage.googleapis.com/public.docutray.com/api-examples/sample_invoice.pdf',
+    documentTypeCodeOptions: ['invoice'],
   });
 
-  console.log('Identification enqueued:', status.identificationId);
+  console.log('Enqueued:', JSON.stringify(status, null, 2));
 
   const result = await status.wait({
     onStatus: (s) => console.log('  Polling...', s.status),
   });
 
-  if (isIdentificationSuccess(result)) {
-    console.log('Best match:', result.documentType?.name);
-    console.log('Confidence:', result.documentType?.confidence);
-  } else {
-    console.error('Identification failed:', result.error);
-  }
+  console.log('Final:', JSON.stringify(result, null, 2));
 }
 
-// Uncomment the function you want to run:
+async function identifyFromBase64() {
+  console.log('--- Synchronous identification from base64 ---');
+
+  const base64 = readFileSync(new URL('sample_invoice.pdf', import.meta.url)).toString('base64');
+
+  const result = await client.identify.run({
+    base64,
+    contentType: 'application/pdf',
+    documentTypeCodeOptions: ['invoice'],
+  });
+
+  console.log('Result:', JSON.stringify(result, null, 2));
+}
+
+// Run the file identification example (sync):
+identifyFromFile();
+
+// Uncomment for other examples:
 // identifyFromUrl();
+// identifyFromBase64();
 // identifyAsync();

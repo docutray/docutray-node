@@ -5,13 +5,13 @@ import { APITimeoutError } from '../../src/core/error.js';
 import type { ConversionStatus } from '../../src/types/convert.js';
 
 const baseStatus: ConversionStatus = {
-  conversionId: 'conv-poll-1',
+  conversion_id: 'conv-poll-1',
   status: 'ENQUEUED',
-  statusUrl: '/api/convert-async/status/conv-poll-1',
-  requestTimestamp: '2025-01-01T00:00:00Z',
-  responseTimestamp: null,
-  documentTypeCode: 'invoice',
-  originalFilename: 'test.pdf',
+  status_url: '/api/convert-async/status/conv-poll-1',
+  request_timestamp: '2025-01-01T00:00:00Z',
+  response_timestamp: null,
+  document_type_code: 'invoice',
+  original_filename: 'test.pdf',
   data: null,
   error: null,
 };
@@ -36,7 +36,7 @@ describe('Integration: Polling', () => {
         return HttpResponse.json({
           ...baseStatus,
           status: 'SUCCESS',
-          responseTimestamp: '2025-01-01T00:00:02Z',
+          response_timestamp: '2025-01-01T00:00:02Z',
           data: { field1: 'value1' },
         });
       }),
@@ -119,7 +119,7 @@ describe('Integration: Polling', () => {
         return HttpResponse.json({
           ...baseStatus,
           status: 'SUCCESS',
-          responseTimestamp: '2025-01-01T00:00:02Z',
+          response_timestamp: '2025-01-01T00:00:02Z',
           data: { field1: 'value1' },
         });
       }),

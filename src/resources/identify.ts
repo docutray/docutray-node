@@ -64,7 +64,7 @@ export class Identify extends APIResource {
     return Object.assign(status, {
       wait: (pollOptions?: Partial<PollOptions<IdentificationStatus>>) =>
         waitForCompletion<IdentificationStatus>({
-          getStatus: () => this.getStatus(status.identificationId, options),
+          getStatus: () => this.getStatus(status.id, options),
           isComplete: isIdentificationComplete,
           isFailed: isIdentificationError,
           getError: (s) => s.error ?? 'Identification failed',
@@ -100,28 +100,35 @@ export class Identify extends APIResource {
     path: string,
     options?: RequestOptions,
   ): Promise<IdentificationStatus | RawResponse<IdentificationStatus>> {
-    const { file, url, base64, contentType, filename, ...rest } = params;
+    const { file, url, base64, contentType, filename, documentTypeCodeOptions, ...rest } = params;
 
     if (file) {
       const { formData } = prepareFileUpload(file, { filename, contentType });
-      if (rest.webhookUrl) formData.append('webhookUrl', rest.webhookUrl);
+      if (documentTypeCodeOptions) {
+        formData.append('document_type_code_options', JSON.stringify(documentTypeCodeOptions));
+      }
+      if (rest.webhookUrl) formData.append('webhook_url', rest.webhookUrl);
       if (rest.wait !== undefined) formData.append('wait', String(rest.wait));
       return this._client.post<IdentificationStatus>(path, formData, options);
     }
 
     if (url) {
-      const body = {
+      const body: Record<string, unknown> = {
         ...prepareUrlUpload(url, contentType),
-        ...rest,
       };
+      if (documentTypeCodeOptions) body.document_type_code_options = documentTypeCodeOptions;
+      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
+      if (rest.wait !== undefined) body.wait = rest.wait;
       return this._client.post<IdentificationStatus>(path, body, options);
     }
 
     if (base64) {
-      const body = {
+      const body: Record<string, unknown> = {
         ...prepareBase64Upload(base64, contentType),
-        ...rest,
       };
+      if (documentTypeCodeOptions) body.document_type_code_options = documentTypeCodeOptions;
+      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
+      if (rest.wait !== undefined) body.wait = rest.wait;
       return this._client.post<IdentificationStatus>(path, body, options);
     }
 

@@ -11,15 +11,17 @@ export type StepExecutionStatusType = 'ENQUEUED' | 'PROCESSING' | 'SUCCESS' | 'E
  */
 export interface StepExecutionStatus {
   /** Unique identifier for this execution. */
-  executionId: string;
+  id: string;
   /** Current status of the execution. */
   status: StepExecutionStatusType;
+  /** The step identifier that was executed. */
+  step_id: string | null;
+  /** Human-readable name of the step. */
+  step_name: string | null;
   /** Timestamp when the execution was requested. */
   requestTimestamp: string | null;
   /** Timestamp when the execution completed. */
   responseTimestamp: string | null;
-  /** The step identifier that was executed. */
-  stepId: string | null;
   /** The original filename of the uploaded document. */
   originalFilename: string | null;
   /** The processed data result (populated on success). */
@@ -46,6 +48,8 @@ export interface StepsRunParams {
   contentType?: ImageContentType;
   /** Filename hint for content type detection. */
   filename?: string;
+  /** Additional metadata to attach to the document being processed. */
+  documentMetadata?: Record<string, unknown>;
   /** When `true`, the API waits for execution to complete before responding. */
   wait?: boolean;
   /** URL to receive a webhook notification when execution completes. */

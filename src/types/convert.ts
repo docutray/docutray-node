@@ -19,19 +19,19 @@ export interface ConversionResult {
  */
 export interface ConversionStatus {
   /** Unique identifier for this conversion. */
-  conversionId: string;
+  conversion_id: string;
   /** Current status of the conversion. */
   status: ConversionStatusType;
   /** URL to poll for status updates. */
-  statusUrl: string | null;
+  status_url: string | null;
   /** Timestamp when the conversion was requested. */
-  requestTimestamp: string | null;
+  request_timestamp: string | null;
   /** Timestamp when the conversion completed. */
-  responseTimestamp: string | null;
+  response_timestamp: string | null;
   /** The document type code used for conversion. */
-  documentTypeCode: string | null;
+  document_type_code: string | null;
   /** The original filename of the uploaded document. */
-  originalFilename: string | null;
+  original_filename: string | null;
   /** The extracted structured data (populated on success). */
   data: Record<string, unknown> | null;
   /** Error message (populated on failure). */

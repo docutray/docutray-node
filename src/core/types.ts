@@ -15,7 +15,7 @@
 export interface ClientOptions {
   /** API key for authenticating with the DocuTray API. */
   apiKey: string;
-  /** Base URL for API requests. Defaults to `https://api.docutray.com/v1`. */
+  /** Base URL for API requests. Defaults to `https://app.docutray.com`. */
   baseURL?: string;
   /** Request timeout in milliseconds. Defaults to `60000`. */
   timeout?: number;
