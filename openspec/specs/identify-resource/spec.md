@@ -34,7 +34,7 @@ The SDK SHALL export an `Identify` class extending `APIResource` in `src/resourc
 - **THEN** it SHALL poll `getStatus()` until `isIdentificationComplete()` returns true
 
 ### Requirement: Identify.getStatus()
-`Identify.getStatus()` SHALL accept an `identificationId` string and GET `/api/identify-async/status/{identificationId}`.
+`Identify.getStatus()` SHALL accept an `identificationId` string and GET `/api/identify-async/status/{identificationId}`. The polling in `runAsync().wait()` SHALL use `status.id` from the API response to call `getStatus()`.
 
 #### Scenario: Getting identification status
 - **WHEN** `getStatus('id-456')` is called

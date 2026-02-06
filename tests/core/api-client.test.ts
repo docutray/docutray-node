@@ -38,7 +38,7 @@ describe('APIClient', () => {
 
   describe('constructor', () => {
     it('uses default base URL', () => {
-      expect(client.baseURL).toBe('https://api.docutray.com/v1');
+      expect(client.baseURL).toBe('https://app.docutray.com');
     });
 
     it('accepts custom base URL and strips trailing slashes', () => {
@@ -98,7 +98,7 @@ describe('APIClient', () => {
       const result = await client.get('/docs');
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const [url, init] = mockFetch.mock.calls[0];
-      expect(url).toBe('https://api.docutray.com/v1/docs');
+      expect(url).toBe('https://app.docutray.com/docs');
       expect(init?.method).toBe('GET');
       expect(result).toEqual({ ok: true });
     });

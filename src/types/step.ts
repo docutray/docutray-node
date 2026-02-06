@@ -10,27 +10,57 @@ export type StepExecutionStatusType = 'ENQUEUED' | 'PROCESSING' | 'SUCCESS' | 'E
  * Status of a step execution, as returned by the API.
  */
 export interface StepExecutionStatus {
-  executionId: string;
+  /** Unique identifier for this execution (present in enqueue response). */
+  id: string;
+  /** Conversion identifier (present in status response). */
+  conversion_id?: string;
+  /** Current status of the execution. */
   status: StepExecutionStatusType;
-  requestTimestamp: string | null;
-  responseTimestamp: string | null;
-  stepId: string | null;
-  originalFilename: string | null;
+  /** The step identifier that was executed (present in enqueue response). */
+  step_id: string | null;
+  /** Human-readable name of the step (present in enqueue response). */
+  step_name: string | null;
+  /** Timestamp when the execution was requested. */
+  request_timestamp: string | null;
+  /** Timestamp when the execution completed. */
+  response_timestamp: string | null;
+  /** The original filename of the uploaded document. */
+  original_filename: string | null;
+  /** The processed data result (populated on success). */
   data: Record<string, unknown> | null;
+  /** Error details (populated on failure). May be a string or structured object. */
   error: string | Record<string, unknown> | null;
+  /** Document identification result from the step pipeline. */
+  identification?: Record<string, unknown> | null;
+  /** Validation result from the step pipeline. */
+  validation?: Record<string, unknown> | null;
+  /** Additional metadata attached to the document. */
+  document_metadata?: Record<string, unknown> | null;
 }
 
 /**
  * Parameters for running a step.
+ *
+ * Provide exactly one of `file`, `url`, or `base64` as the document source.
  */
 export interface StepsRunParams {
+  /** The identifier of the step to execute. */
   stepId: string;
+  /** A file to upload via multipart form. */
   file?: FileInput;
+  /** A URL pointing to the document. */
   url?: string;
+  /** A base64-encoded document string. */
   base64?: string;
+  /** MIME type hint for the document. */
   contentType?: ImageContentType;
+  /** Filename hint for content type detection. */
   filename?: string;
+  /** Additional metadata to attach to the document being processed. */
+  documentMetadata?: Record<string, unknown>;
+  /** When `true`, the API waits for execution to complete before responding. */
   wait?: boolean;
+  /** URL to receive a webhook notification when execution completes. */
   webhookUrl?: string;
 }
 

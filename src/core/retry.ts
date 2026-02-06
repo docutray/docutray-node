@@ -8,6 +8,7 @@ import {
 } from '../lib/constants.js';
 import type { RetryConfig } from './types.js';
 
+/** @internal */
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 2,
   initialDelay: RETRY_INITIAL_DELAY,
@@ -17,6 +18,17 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   jitterMax: RETRY_JITTER_MAX,
 };
 
+/**
+ * Calculates the delay before the next retry attempt using exponential backoff with jitter.
+ *
+ * If a `retryAfter` value is provided (from a `Retry-After` header), the calculated
+ * delay will be at least that long.
+ *
+ * @param attempt - The zero-based retry attempt number.
+ * @param config - Partial retry configuration overrides.
+ * @param retryAfter - Optional `Retry-After` header value in seconds.
+ * @returns The delay in milliseconds before the next retry.
+ */
 export function calculateRetryDelay(
   attempt: number,
   config: Partial<RetryConfig> = {},
@@ -43,6 +55,18 @@ export function calculateRetryDelay(
   return cappedDelay;
 }
 
+/**
+ * Determines whether a request should be retried.
+ *
+ * Returns `true` when the attempt count is below `maxRetries` and the failure
+ * is either a connection error or a retryable HTTP status code (429, 5xx).
+ *
+ * @param attempt - The zero-based retry attempt number.
+ * @param maxRetries - The maximum number of retries allowed.
+ * @param statusCode - The HTTP status code, if available.
+ * @param isConnectionError - Whether the failure was a connection error.
+ * @returns `true` if the request should be retried.
+ */
 export function shouldRetry(
   attempt: number,
   maxRetries: number,

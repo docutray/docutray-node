@@ -11,7 +11,7 @@ The SDK SHALL export a `StepExecutionStatusType` type as a string union: `"ENQUE
 - **THEN** it SHALL be accepted by the TypeScript compiler
 
 ### Requirement: StepExecutionStatus interface
-The SDK SHALL export a `StepExecutionStatus` interface with properties: `executionId` (string), `status` (StepExecutionStatusType), `requestTimestamp` (string | null), `responseTimestamp` (string | null), `stepId` (string | null), `originalFilename` (string | null), `data` (Record<string, unknown> | null), `error` (string | Record<string, unknown> | null).
+The SDK SHALL export a `StepExecutionStatus` interface with snake_case properties matching the API response: `id` (string), `conversion_id` (string, optional — present in status response), `status` (StepExecutionStatusType), `step_id` (string | null), `step_name` (string | null), `request_timestamp` (string | null), `response_timestamp` (string | null), `original_filename` (string | null), `data` (Record<string, unknown> | null), `error` (string | Record<string, unknown> | null), `identification` (Record<string, unknown> | null, optional), `validation` (Record<string, unknown> | null, optional), `document_metadata` (Record<string, unknown> | null, optional).
 
 #### Scenario: Successful step execution
 - **WHEN** a step execution completes with status `"SUCCESS"`
@@ -26,7 +26,7 @@ The SDK SHALL export a `StepExecutionStatus` interface with properties: `executi
 - **THEN** `error` SHALL be `Record<string, unknown>` and `data` SHALL be `null`
 
 ### Requirement: StepsRunParams interface
-The SDK SHALL export a `StepsRunParams` interface with properties: `stepId` (string), `file` (FileInput, optional), `url` (string, optional), `base64` (string, optional), `contentType` (ImageContentType, optional), `filename` (string, optional), `wait` (boolean, optional), `webhookUrl` (string, optional).
+The SDK SHALL export a `StepsRunParams` interface with properties: `stepId` (string), `file` (FileInput, optional), `url` (string, optional), `base64` (string, optional), `contentType` (ImageContentType, optional), `filename` (string, optional), `documentMetadata` (Record<string, unknown>, optional — additional metadata to attach to the document), `wait` (boolean, optional), `webhookUrl` (string, optional).
 
 #### Scenario: Step run with file
 - **WHEN** params include `{ stepId: "step_abc", file: buffer }`
