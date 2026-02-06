@@ -69,6 +69,25 @@ export { calculateRetryDelay, shouldRetry } from './core/retry.js';
 // Resource base
 export { APIResource } from './resource.js';
 
+// Resources
+export {
+  Convert,
+  Identify,
+  DocumentTypes,
+  Steps,
+  KnowledgeBases,
+  KnowledgeBaseDocuments,
+} from './resources/index.js';
+export type {
+  KnowledgeBaseCreateParams,
+  KnowledgeBaseUpdateParams,
+  KnowledgeBaseSearchParams,
+  KnowledgeBaseListParams,
+  KBDocumentCreateParams,
+  KBDocumentUpdateParams,
+  KBDocumentListParams,
+} from './resources/index.js';
+
 // Resource types
 export type {
   Pagination,
