@@ -28,7 +28,6 @@ export type FileInput =
   | Blob
   | Buffer
   | ArrayBuffer
-  | ReadableStream
   | FileWithMetadata;
 
 export interface FileWithMetadata {

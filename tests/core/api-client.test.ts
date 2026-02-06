@@ -71,8 +71,15 @@ describe('APIClient', () => {
       expect(headers['User-Agent']).toBe(`docutray-node/${VERSION}`);
     });
 
-    it('sends Content-Type header', async () => {
+    it('does not send Content-Type header on GET', async () => {
       await client.get('/test');
+      const [, init] = mockFetch.mock.calls[0];
+      const headers = init?.headers as Record<string, string>;
+      expect(headers['Content-Type']).toBeUndefined();
+    });
+
+    it('sends Content-Type application/json on POST with JSON body', async () => {
+      await client.post('/test', { key: 'value' });
       const [, init] = mockFetch.mock.calls[0];
       const headers = init?.headers as Record<string, string>;
       expect(headers['Content-Type']).toBe('application/json');
@@ -282,6 +289,30 @@ describe('APIClient', () => {
       const result = await client.get('/test');
       expect(result).toEqual({ custom: true });
       expect(customFetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('FormData support', () => {
+    it('sends FormData body without Content-Type header', async () => {
+      const formData = new FormData();
+      formData.append('image', new Blob(['data']), 'test.pdf');
+
+      await client.post('/upload', formData);
+      const [, init] = mockFetch.mock.calls[0];
+      const headers = init?.headers as Record<string, string>;
+
+      expect(headers['Content-Type']).toBeUndefined();
+      expect(init?.body).toBe(formData);
+    });
+
+    it('does not JSON.stringify FormData body', async () => {
+      const formData = new FormData();
+      formData.append('image', new Blob(['data']), 'file.pdf');
+
+      await client.post('/upload', formData);
+      const [, init] = mockFetch.mock.calls[0];
+
+      expect(init?.body).toBeInstanceOf(FormData);
     });
   });
 

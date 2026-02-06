@@ -19,6 +19,19 @@ export {
 // Utilities
 export { readEnv, sleep, maskApiKey } from './lib/utils.js';
 
+// File handling
+export {
+  detectContentType,
+  prepareFileUpload,
+  prepareUrlUpload,
+  prepareBase64Upload,
+} from './lib/files.js';
+export type {
+  FileUpload,
+  UrlUploadBody,
+  Base64UploadBody,
+} from './lib/files.js';
+
 // Types
 export type {
   ClientOptions,
