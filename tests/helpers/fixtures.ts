@@ -83,9 +83,9 @@ export const mockStepExecutionStatus: StepExecutionStatus = {
   status: 'SUCCESS',
   step_id: 'step-1',
   step_name: 'Test Step',
-  requestTimestamp: '2025-01-01T00:00:00Z',
-  responseTimestamp: '2025-01-01T00:00:01Z',
-  originalFilename: 'test.pdf',
+  request_timestamp: '2025-01-01T00:00:00Z',
+  response_timestamp: '2025-01-01T00:00:01Z',
+  original_filename: 'test.pdf',
   data: { result: 'processed' },
   error: null,
 };
@@ -94,7 +94,7 @@ export const mockStepExecutionPending: StepExecutionStatus = {
   ...mockStepExecutionStatus,
   status: 'ENQUEUED',
   data: null,
-  responseTimestamp: null,
+  response_timestamp: null,
 };
 
 export const mockKnowledgeBase: KnowledgeBase = {

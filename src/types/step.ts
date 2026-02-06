@@ -10,24 +10,32 @@ export type StepExecutionStatusType = 'ENQUEUED' | 'PROCESSING' | 'SUCCESS' | 'E
  * Status of a step execution, as returned by the API.
  */
 export interface StepExecutionStatus {
-  /** Unique identifier for this execution. */
+  /** Unique identifier for this execution (present in enqueue response). */
   id: string;
+  /** Conversion identifier (present in status response, same value as `id`). */
+  conversion_id?: string;
   /** Current status of the execution. */
   status: StepExecutionStatusType;
-  /** The step identifier that was executed. */
+  /** The step identifier that was executed (present in enqueue response). */
   step_id: string | null;
-  /** Human-readable name of the step. */
+  /** Human-readable name of the step (present in enqueue response). */
   step_name: string | null;
   /** Timestamp when the execution was requested. */
-  requestTimestamp: string | null;
+  request_timestamp: string | null;
   /** Timestamp when the execution completed. */
-  responseTimestamp: string | null;
+  response_timestamp: string | null;
   /** The original filename of the uploaded document. */
-  originalFilename: string | null;
+  original_filename: string | null;
   /** The processed data result (populated on success). */
   data: Record<string, unknown> | null;
   /** Error details (populated on failure). May be a string or structured object. */
   error: string | Record<string, unknown> | null;
+  /** Document identification result from the step pipeline. */
+  identification?: Record<string, unknown> | null;
+  /** Validation result from the step pipeline. */
+  validation?: Record<string, unknown> | null;
+  /** Additional metadata attached to the document. */
+  document_metadata?: Record<string, unknown> | null;
 }
 
 /**

@@ -25,18 +25,18 @@ The SDK SHALL export an `IdentificationResult` interface with properties: `docum
 - **THEN** `documentType` SHALL be the primary `DocumentTypeMatch` and `alternatives` SHALL be an array of 2 `DocumentTypeMatch` objects
 
 ### Requirement: IdentificationStatus interface
-The SDK SHALL export an `IdentificationStatus` interface with properties: `identificationId` (string), `status` (IdentificationStatusType), `statusUrl` (string | null), `requestTimestamp` (string | null), `responseTimestamp` (string | null), `originalFilename` (string | null), `documentType` (DocumentTypeMatch | null), `alternatives` (DocumentTypeMatch[] | null), `error` (string | null).
+The SDK SHALL export an `IdentificationStatus` interface with snake_case properties matching the API response: `id` (string), `status` (IdentificationStatusType), `status_url` (string | null), `request_timestamp` (string | null), `response_timestamp` (string | null), `original_filename` (string | null), `document_type` (DocumentTypeMatch | null), `alternatives` (DocumentTypeMatch[] | null), `error` (string | null).
 
 #### Scenario: Successful identification
 - **WHEN** identification completes with status `"SUCCESS"`
-- **THEN** `documentType` SHALL contain the primary match, `alternatives` SHALL contain alternative matches, and `error` SHALL be `null`
+- **THEN** `document_type` SHALL contain the primary match, `alternatives` SHALL contain alternative matches, and `error` SHALL be `null`
 
 #### Scenario: Failed identification
 - **WHEN** identification fails with status `"ERROR"`
-- **THEN** `error` SHALL contain the error message, `documentType` SHALL be `null`, and `alternatives` SHALL be `null`
+- **THEN** `error` SHALL contain the error message, `document_type` SHALL be `null`, and `alternatives` SHALL be `null`
 
 ### Requirement: IdentifyParams interface
-The SDK SHALL export an `IdentifyParams` interface with properties: `file` (FileInput, optional), `url` (string, optional), `base64` (string, optional), `contentType` (ImageContentType, optional), `filename` (string, optional), `wait` (boolean, optional), `webhookUrl` (string, optional).
+The SDK SHALL export an `IdentifyParams` interface with properties: `file` (FileInput, optional), `url` (string, optional), `base64` (string, optional), `contentType` (ImageContentType, optional), `filename` (string, optional), `documentTypeCodeOptions` (string[], optional — restricts identification to specific document type codes), `wait` (boolean, optional), `webhookUrl` (string, optional).
 
 #### Scenario: File upload identification
 - **WHEN** params include `{ file: buffer }`

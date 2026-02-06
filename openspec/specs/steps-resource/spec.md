@@ -27,7 +27,7 @@ The SDK SHALL export a `Steps` class extending `APIResource` in `src/resources/s
 - **THEN** it SHALL poll `getStatus()` until `isStepExecutionComplete()` returns true
 
 ### Requirement: Steps.getStatus()
-`Steps.getStatus()` SHALL accept an `executionId` string and GET `/api/steps-async/status/{executionId}`.
+`Steps.getStatus()` SHALL accept an `executionId` string and GET `/api/steps-async/status/{executionId}`. The polling in `runAsync().wait()` SHALL use `status.id` from the API response to call `getStatus()`.
 
 #### Scenario: Getting step execution status
 - **WHEN** `getStatus('exec-abc')` is called

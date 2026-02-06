@@ -36,6 +36,8 @@ export interface ConversionStatus {
   data: Record<string, unknown> | null;
   /** Error message (populated on failure). */
   error: string | null;
+  /** Additional metadata attached to the document. */
+  document_metadata?: Record<string, unknown> | null;
 }
 
 /**

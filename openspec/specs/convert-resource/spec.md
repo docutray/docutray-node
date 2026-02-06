@@ -12,7 +12,7 @@ The SDK SHALL export a `Convert` class extending `APIResource` in `src/resources
 
 #### Scenario: File upload via multipart
 - **WHEN** `run()` is called with `params.file` set to a Buffer
-- **THEN** it SHALL create FormData using `prepareFileUpload()`, append `documentTypeCode` and other params as form fields, and POST as multipart
+- **THEN** it SHALL create FormData using `prepareFileUpload()`, append `document_type_code` and other params as snake_case form fields, and POST as multipart
 
 #### Scenario: File upload via URL
 - **WHEN** `run()` is called with `params.url` set to a URL string
@@ -34,7 +34,7 @@ The SDK SHALL export a `Convert` class extending `APIResource` in `src/resources
 - **THEN** it SHALL poll `getStatus()` until `isConversionComplete()` returns true
 
 ### Requirement: Convert.getStatus()
-`Convert.getStatus()` SHALL accept a `conversionId` string and GET `/api/convert-async/status/{conversionId}`, returning a `ConversionStatus`.
+`Convert.getStatus()` SHALL accept a `conversionId` string and GET `/api/convert-async/status/{conversionId}`, returning a `ConversionStatus`. The polling in `runAsync().wait()` SHALL use `status.conversion_id` from the API response to call `getStatus()`.
 
 #### Scenario: Getting conversion status
 - **WHEN** `getStatus('conv-123')` is called
