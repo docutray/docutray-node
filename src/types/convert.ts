@@ -10,6 +10,7 @@ export type ConversionStatusType = 'ENQUEUED' | 'PROCESSING' | 'SUCCESS' | 'ERRO
  * Extracted data from a successful conversion.
  */
 export interface ConversionResult {
+  /** The structured data extracted from the document. */
   data: Record<string, unknown>;
 }
 
@@ -17,28 +18,47 @@ export interface ConversionResult {
  * Status of a conversion operation, as returned by the API.
  */
 export interface ConversionStatus {
+  /** Unique identifier for this conversion. */
   conversionId: string;
+  /** Current status of the conversion. */
   status: ConversionStatusType;
+  /** URL to poll for status updates. */
   statusUrl: string | null;
+  /** Timestamp when the conversion was requested. */
   requestTimestamp: string | null;
+  /** Timestamp when the conversion completed. */
   responseTimestamp: string | null;
+  /** The document type code used for conversion. */
   documentTypeCode: string | null;
+  /** The original filename of the uploaded document. */
   originalFilename: string | null;
+  /** The extracted structured data (populated on success). */
   data: Record<string, unknown> | null;
+  /** Error message (populated on failure). */
   error: string | null;
 }
 
 /**
  * Parameters for creating a conversion request.
+ *
+ * Provide exactly one of `file`, `url`, or `base64` as the document source.
  */
 export interface ConvertParams {
+  /** The document type code that defines the extraction schema. */
   documentTypeCode: string;
+  /** A file to upload via multipart form. */
   file?: FileInput;
+  /** A URL pointing to the document. */
   url?: string;
+  /** A base64-encoded document string. */
   base64?: string;
+  /** MIME type hint for the document. */
   contentType?: ImageContentType;
+  /** Filename hint for content type detection. */
   filename?: string;
+  /** When `true`, the API waits for conversion to complete before responding. */
   wait?: boolean;
+  /** URL to receive a webhook notification when conversion completes. */
   webhookUrl?: string;
 }
 

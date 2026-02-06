@@ -6,7 +6,31 @@ import type { DocumentType, DocumentTypesListParams, ValidationResult } from '..
 import type { RequestOptions } from '../core/types.js';
 import type { RawResponse } from '../core/raw-response.js';
 
+/**
+ * Resource for listing and inspecting document type definitions.
+ *
+ * Access via {@link DocuTray.documentTypes}.
+ *
+ * @example
+ * ```ts
+ * // List all document types
+ * const page = await client.documentTypes.list();
+ * for (const dt of page.data) {
+ *   console.log(dt.name, dt.codeType);
+ * }
+ *
+ * // Get a specific document type
+ * const dt = await client.documentTypes.get('dt_abc123');
+ * ```
+ */
 export class DocumentTypes extends APIResource {
+  /**
+   * Lists document types with optional pagination and search.
+   *
+   * @param params - Optional pagination and search parameters.
+   * @param options - Per-request options.
+   * @returns A paginated list of document types.
+   */
   async list(params?: DocumentTypesListParams, options?: Omit<RequestOptions, 'raw'>): Promise<Page<DocumentType>> {
     const query = params ? { ...params } : undefined;
     const response = await this._client.get<PageResponse<DocumentType>>(
@@ -21,6 +45,13 @@ export class DocumentTypes extends APIResource {
     });
   }
 
+  /**
+   * Retrieves a single document type by ID.
+   *
+   * @param id - The document type identifier.
+   * @param options - Per-request options.
+   * @returns The document type definition.
+   */
   async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<DocumentType> {
     return this._client.get<DocumentType>(
       `/api/document-types/${id}`,
@@ -28,6 +59,13 @@ export class DocumentTypes extends APIResource {
     ) as Promise<DocumentType>;
   }
 
+  /**
+   * Validates a document type schema.
+   *
+   * @param id - The document type identifier.
+   * @param options - Per-request options.
+   * @returns The validation result with errors and warnings.
+   */
   async validate(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<ValidationResult> {
     return this._client.post<ValidationResult>(
       `/api/document-types/${id}/validate`,
@@ -36,11 +74,15 @@ export class DocumentTypes extends APIResource {
     ) as Promise<ValidationResult>;
   }
 
+  /**
+   * Returns a wrapper that provides raw HTTP responses for all methods.
+   */
   get withRawResponse(): DocumentTypesWithRawResponse {
     return new DocumentTypesWithRawResponse(this._client);
   }
 }
 
+/** @internal */
 class DocumentTypesWithRawResponse {
   private _client: APIClient;
 

@@ -1,5 +1,6 @@
 import type { FileInput, FileWithMetadata } from '../core/types.js';
 
+/** @internal */
 const EXTENSION_TO_CONTENT_TYPE: Record<string, string> = {
   '.pdf': 'application/pdf',
   '.jpg': 'image/jpeg',
@@ -12,25 +13,49 @@ const EXTENSION_TO_CONTENT_TYPE: Record<string, string> = {
   '.tif': 'image/tiff',
 };
 
+/** @internal */
 const DEFAULT_CONTENT_TYPE = 'application/pdf';
+/** @internal */
 const DEFAULT_FILENAME = 'document';
+/** @internal */
 const UPLOAD_FIELD_NAME = 'image';
 
+/**
+ * Result of preparing a file for multipart upload.
+ */
 export interface FileUpload {
+  /** The `FormData` ready to send as a request body. */
   formData: FormData;
+  /** The detected or provided MIME type. */
   contentType: string;
 }
 
+/**
+ * JSON body shape for URL-based document uploads.
+ */
 export interface UrlUploadBody {
+  /** The URL pointing to the document. */
   image_url: string;
+  /** Optional MIME type hint. */
   image_content_type?: string;
 }
 
+/**
+ * JSON body shape for base64-encoded document uploads.
+ */
 export interface Base64UploadBody {
+  /** The raw base64-encoded document content (without data-URI prefix). */
   image_base64: string;
+  /** Optional MIME type hint. */
   image_content_type?: string;
 }
 
+/**
+ * Detects the MIME content type from a filename extension.
+ *
+ * @param filename - The filename to inspect.
+ * @returns The detected MIME type, or `application/octet-stream` if unknown.
+ */
 export function detectContentType(filename: string): string {
   const dotIndex = filename.lastIndexOf('.');
   if (dotIndex === -1) {
@@ -40,6 +65,7 @@ export function detectContentType(filename: string): string {
   return EXTENSION_TO_CONTENT_TYPE[ext] ?? 'application/octet-stream';
 }
 
+/** @internal */
 function isFileWithMetadata(file: FileInput): file is FileWithMetadata {
   return (
     typeof file === 'object' &&
@@ -49,6 +75,13 @@ function isFileWithMetadata(file: FileInput): file is FileWithMetadata {
   );
 }
 
+/**
+ * Prepares a {@link FileInput} for multipart form upload.
+ *
+ * @param file - The file to upload (Blob, Buffer, ArrayBuffer, or FileWithMetadata).
+ * @param options - Optional filename and content type overrides.
+ * @returns A {@link FileUpload} with the `FormData` and detected content type.
+ */
 export function prepareFileUpload(
   file: FileInput,
   options?: { filename?: string; contentType?: string },
@@ -93,6 +126,13 @@ export function prepareFileUpload(
   return { formData, contentType };
 }
 
+/**
+ * Prepares a URL-based upload body.
+ *
+ * @param url - The document URL.
+ * @param contentType - Optional MIME type hint.
+ * @returns A {@link UrlUploadBody} ready for JSON serialization.
+ */
 export function prepareUrlUpload(
   url: string,
   contentType?: string,
@@ -104,8 +144,16 @@ export function prepareUrlUpload(
   return body;
 }
 
+/** @internal */
 const DATA_URI_REGEX = /^data:[^;]+;base64,/;
 
+/**
+ * Prepares a base64-encoded upload body, stripping data-URI prefixes if present.
+ *
+ * @param base64 - The base64 string, optionally with a `data:...;base64,` prefix.
+ * @param contentType - Optional MIME type hint (ignored when a data-URI prefix is present).
+ * @returns A {@link Base64UploadBody} ready for JSON serialization.
+ */
 export function prepareBase64Upload(
   base64: string,
   contentType?: string,

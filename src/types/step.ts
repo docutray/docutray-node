@@ -10,27 +10,45 @@ export type StepExecutionStatusType = 'ENQUEUED' | 'PROCESSING' | 'SUCCESS' | 'E
  * Status of a step execution, as returned by the API.
  */
 export interface StepExecutionStatus {
+  /** Unique identifier for this execution. */
   executionId: string;
+  /** Current status of the execution. */
   status: StepExecutionStatusType;
+  /** Timestamp when the execution was requested. */
   requestTimestamp: string | null;
+  /** Timestamp when the execution completed. */
   responseTimestamp: string | null;
+  /** The step identifier that was executed. */
   stepId: string | null;
+  /** The original filename of the uploaded document. */
   originalFilename: string | null;
+  /** The processed data result (populated on success). */
   data: Record<string, unknown> | null;
+  /** Error details (populated on failure). May be a string or structured object. */
   error: string | Record<string, unknown> | null;
 }
 
 /**
  * Parameters for running a step.
+ *
+ * Provide exactly one of `file`, `url`, or `base64` as the document source.
  */
 export interface StepsRunParams {
+  /** The identifier of the step to execute. */
   stepId: string;
+  /** A file to upload via multipart form. */
   file?: FileInput;
+  /** A URL pointing to the document. */
   url?: string;
+  /** A base64-encoded document string. */
   base64?: string;
+  /** MIME type hint for the document. */
   contentType?: ImageContentType;
+  /** Filename hint for content type detection. */
   filename?: string;
+  /** When `true`, the API waits for execution to complete before responding. */
   wait?: boolean;
+  /** URL to receive a webhook notification when execution completes. */
   webhookUrl?: string;
 }
 
