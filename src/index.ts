@@ -1,3 +1,7 @@
+// Client
+export { DocuTray } from './client.js';
+export { DocuTray as default } from './client.js';
+
 // Version
 export { VERSION } from './lib/version.js';
 

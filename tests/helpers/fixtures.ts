@@ -1,4 +1,5 @@
 import { APIClient } from '../../src/core/api-client.js';
+import { DocuTray } from '../../src/client.js';
 import type { ConversionStatus } from '../../src/types/convert.js';
 import type { IdentificationStatus } from '../../src/types/identify.js';
 import type { DocumentType, ValidationResult } from '../../src/types/document-type.js';
@@ -9,6 +10,13 @@ export const TEST_BASE_URL = 'https://api.docutray.com/v1';
 
 export function createTestClient(): APIClient {
   return new APIClient({
+    apiKey: 'test-key',
+    baseURL: TEST_BASE_URL,
+  });
+}
+
+export function createDocuTrayClient(): DocuTray {
+  return new DocuTray({
     apiKey: 'test-key',
     baseURL: TEST_BASE_URL,
   });
