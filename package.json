@@ -50,7 +50,7 @@
   },
   "homepage": "https://docutray.com",
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.0",
