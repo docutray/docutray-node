@@ -54,7 +54,7 @@ npm run typecheck      # tsc --noEmit
 - camelCase for methods and properties
 - Async-only (Promises), no sync/async dual
 - Private modules prefixed with underscore (`_client.ts`, `_http.ts`)
-- Node.js 18+ required (native fetch/FormData)
+- Node.js 20+ required (native fetch/FormData)
 - Each task should be independently testable
 - Include TypeScript types in all code tasks
 
