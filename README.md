@@ -1,5 +1,6 @@
 # DocuTray Node.js Library
 
+[![CI](https://github.com/docutray/docutray-node/actions/workflows/ci.yml/badge.svg)](https://github.com/docutray/docutray-node/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/docutray.svg)](https://www.npmjs.com/package/docutray)
 [![License](https://img.shields.io/npm/l/docutray.svg)](https://github.com/docutray/docutray-node/blob/main/LICENSE)
 
