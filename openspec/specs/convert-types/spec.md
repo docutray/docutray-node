@@ -22,7 +22,7 @@ The SDK SHALL export a `ConversionResult` interface with property: `data` (Recor
 - **THEN** it SHALL be assignable to `ConversionResult`
 
 ### Requirement: ConversionStatus interface
-The SDK SHALL export a `ConversionStatus` interface with properties: `conversionId` (string), `status` (ConversionStatusType), `statusUrl` (string | null), `requestTimestamp` (string | null), `responseTimestamp` (string | null), `documentTypeCode` (string | null), `originalFilename` (string | null), `data` (Record<string, unknown> | null), `error` (string | null).
+The SDK SHALL export a `ConversionStatus` interface with snake_case properties matching the API response: `conversion_id` (string), `status` (ConversionStatusType), `status_url` (string | null), `request_timestamp` (string | null), `response_timestamp` (string | null), `document_type_code` (string | null), `original_filename` (string | null), `data` (Record<string, unknown> | null), `error` (string | null), `document_metadata` (Record<string, unknown> | null, optional).
 
 #### Scenario: Enqueued conversion
 - **WHEN** a conversion is submitted and returns status `"ENQUEUED"`

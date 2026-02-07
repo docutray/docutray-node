@@ -38,7 +38,7 @@ describe('APIClient', () => {
 
   describe('constructor', () => {
     it('uses default base URL', () => {
-      expect(client.baseURL).toBe('https://api.docutray.com/v1');
+      expect(client.baseURL).toBe('https://app.docutray.com');
     });
 
     it('accepts custom base URL and strips trailing slashes', () => {
@@ -98,7 +98,7 @@ describe('APIClient', () => {
       const result = await client.get('/docs');
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const [url, init] = mockFetch.mock.calls[0];
-      expect(url).toBe('https://api.docutray.com/v1/docs');
+      expect(url).toBe('https://app.docutray.com/docs');
       expect(init?.method).toBe('GET');
       expect(result).toEqual({ ok: true });
     });
@@ -226,6 +226,62 @@ describe('APIClient', () => {
       });
 
       await expect(client.get('/slow')).rejects.toThrow(APITimeoutError);
+    });
+
+    it('throws immediately on user AbortSignal without retrying', async () => {
+      let fetchCallCount = 0;
+      const slowFetch = vi.fn(async (_url: string, init?: RequestInit) => {
+        fetchCallCount++;
+        return new Promise<Response>((_, reject) => {
+          const signal = init?.signal;
+          if (signal) {
+            signal.addEventListener('abort', () => {
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+            });
+          }
+        });
+      });
+
+      client = new APIClient({
+        apiKey: 'key',
+        timeout: 60_000,
+        maxRetries: 2,
+        fetch: slowFetch as unknown as typeof globalThis.fetch,
+      });
+
+      const controller = new AbortController();
+      const promise = client.get('/slow', { signal: controller.signal });
+      setTimeout(() => controller.abort(), 20);
+
+      await expect(promise).rejects.toThrow(APITimeoutError);
+      await expect(promise).rejects.toThrow(/aborted/);
+      expect(fetchCallCount).toBe(1);
+    });
+
+    it('throws immediately if signal is already aborted', async () => {
+      const controller = new AbortController();
+      controller.abort();
+
+      client = new APIClient({
+        apiKey: 'key',
+        maxRetries: 2,
+        fetch: mockFetch as unknown as typeof globalThis.fetch,
+      });
+
+      await expect(
+        client.get('/test', { signal: controller.signal }),
+      ).rejects.toThrow(APITimeoutError);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('cleans up signal listener on successful request', async () => {
+      const signal = new AbortController().signal;
+      const removeSpy = vi.spyOn(signal, 'removeEventListener');
+
+      await client.get('/test', { signal });
+
+      expect(removeSpy).toHaveBeenCalledWith('abort', expect.any(Function));
+      removeSpy.mockRestore();
     });
   });
 

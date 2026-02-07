@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+    branches: [main, 'feat/**']
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node.js ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm run test:coverage
+
+  package:
+    name: Package verification
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Verify package contents
+        run: |
+          npm pack --dry-run --json > pack-output.json
+          node -e "
+            const data = require('./pack-output.json');
+            const files = (Array.isArray(data) ? data[0] : data).files || [];
+            const paths = files.map(f => f.path);
+            const allowed = /^(package\.json|README.*|LICENSE.*|CHANGELOG.*|dist\/.*)$/;
+            const bad = paths.filter(p => !allowed.test(p));
+            if (bad.length) {
+              console.error('Unexpected files in package:', bad.join(', '));
+              process.exit(1);
+            }
+            console.log('Package contents OK:', paths.length, 'files');
+          "
+
+      - name: Check types with attw
+        run: npx @arethetypeswrong/cli --pack .
+
+      - name: Create package tarball
+        run: echo "TAR_FILE=$(npm pack)" >> "$GITHUB_ENV"
+
+      - name: Verify ESM import
+        run: |
+          mkdir -p /tmp/esm-test && cd /tmp/esm-test
+          npm init -y > /dev/null 2>&1
+          npm install "$GITHUB_WORKSPACE/$TAR_FILE" > /dev/null 2>&1
+          node --input-type=module -e "import DocuTray from 'docutray'; if (typeof DocuTray !== 'function') { process.exit(1); } console.log('ESM import: OK');"
+
+      - name: Verify CJS require
+        run: |
+          mkdir -p /tmp/cjs-test && cd /tmp/cjs-test
+          npm init -y > /dev/null 2>&1
+          npm install "$GITHUB_WORKSPACE/$TAR_FILE" > /dev/null 2>&1
+          node -e "const m = require('docutray'); const C = m.default || m; if (typeof C !== 'function') { process.exit(1); } console.log('CJS require: OK');"

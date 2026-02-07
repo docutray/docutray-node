@@ -33,7 +33,7 @@ describe('Steps', () => {
         filename: 'test.pdf',
       });
 
-      expect(result.executionId).toBe('exec-abc');
+      expect(result.id).toBe('exec-abc');
       expect(receivedContentType).toContain('multipart/form-data');
     });
 
@@ -52,7 +52,7 @@ describe('Steps', () => {
         url: 'https://example.com/doc.pdf',
       });
 
-      expect(result.executionId).toBe('exec-abc');
+      expect(result.id).toBe('exec-abc');
       expect(receivedBody.image_url).toBe('https://example.com/doc.pdf');
     });
 
@@ -137,7 +137,7 @@ describe('Steps', () => {
 
       const steps = createSteps();
       const result = await steps.getStatus('exec-abc');
-      expect(result.executionId).toBe('exec-abc');
+      expect(result.id).toBe('exec-abc');
       expect(result.status).toBe('SUCCESS');
     });
   });

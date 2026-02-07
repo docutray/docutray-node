@@ -61,11 +61,11 @@ The SDK SHALL export an `APIClient` class that accepts `ClientOptions` (apiKey, 
 - **THEN** a POST request SHALL be made with JSON-encoded body and `Content-Type: application/json`
 
 ### Requirement: Default base URL
-`APIClient` SHALL use `https://api.docutray.com/v1` as the default base URL.
+`APIClient` SHALL use `https://app.docutray.com` as the default base URL.
 
 #### Scenario: Default URL
 - **WHEN** no baseURL is provided
-- **THEN** requests SHALL be sent to `https://api.docutray.com/v1`
+- **THEN** requests SHALL be sent to `https://app.docutray.com`
 
 ### Requirement: Raw response access
 `APIClient` SHALL support a `{ raw: true }` request option that returns a `RawResponse<T>` instead of the parsed body.

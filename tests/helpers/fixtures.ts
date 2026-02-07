@@ -1,11 +1,12 @@
 import { APIClient } from '../../src/core/api-client.js';
+import { DocuTray } from '../../src/client.js';
 import type { ConversionStatus } from '../../src/types/convert.js';
 import type { IdentificationStatus } from '../../src/types/identify.js';
 import type { DocumentType, ValidationResult } from '../../src/types/document-type.js';
 import type { StepExecutionStatus } from '../../src/types/step.js';
 import type { KnowledgeBase, KnowledgeBaseDocument, SearchResult, SyncResult } from '../../src/types/knowledge-base.js';
 
-export const TEST_BASE_URL = 'https://api.docutray.com/v1';
+export const TEST_BASE_URL = 'https://app.docutray.com';
 
 export function createTestClient(): APIClient {
   return new APIClient({
@@ -14,14 +15,21 @@ export function createTestClient(): APIClient {
   });
 }
 
+export function createDocuTrayClient(): DocuTray {
+  return new DocuTray({
+    apiKey: 'test-key',
+    baseURL: TEST_BASE_URL,
+  });
+}
+
 export const mockConversionStatus: ConversionStatus = {
-  conversionId: 'conv-123',
+  conversion_id: 'conv-123',
   status: 'SUCCESS',
-  statusUrl: '/api/convert-async/status/conv-123',
-  requestTimestamp: '2025-01-01T00:00:00Z',
-  responseTimestamp: '2025-01-01T00:00:01Z',
-  documentTypeCode: 'invoice',
-  originalFilename: 'test.pdf',
+  status_url: '/api/convert-async/status/conv-123',
+  request_timestamp: '2025-01-01T00:00:00Z',
+  response_timestamp: '2025-01-01T00:00:01Z',
+  document_type_code: 'invoice',
+  original_filename: 'test.pdf',
   data: { field1: 'value1' },
   error: null,
 };
@@ -30,17 +38,17 @@ export const mockConversionPending: ConversionStatus = {
   ...mockConversionStatus,
   status: 'ENQUEUED',
   data: null,
-  responseTimestamp: null,
+  response_timestamp: null,
 };
 
 export const mockIdentificationStatus: IdentificationStatus = {
-  identificationId: 'id-456',
+  id: 'id-456',
   status: 'SUCCESS',
-  statusUrl: '/api/identify-async/status/id-456',
-  requestTimestamp: '2025-01-01T00:00:00Z',
-  responseTimestamp: '2025-01-01T00:00:01Z',
-  originalFilename: 'test.pdf',
-  documentType: { code: 'invoice', name: 'Invoice', confidence: 0.95 },
+  status_url: '/api/identify-async/status/id-456',
+  request_timestamp: '2025-01-01T00:00:00Z',
+  response_timestamp: '2025-01-01T00:00:01Z',
+  original_filename: 'test.pdf',
+  document_type: { code: 'invoice', name: 'Invoice', confidence: 0.95 },
   alternatives: [{ code: 'receipt', name: 'Receipt', confidence: 0.3 }],
   error: null,
 };
@@ -48,9 +56,9 @@ export const mockIdentificationStatus: IdentificationStatus = {
 export const mockIdentificationPending: IdentificationStatus = {
   ...mockIdentificationStatus,
   status: 'ENQUEUED',
-  documentType: null,
+  document_type: null,
   alternatives: null,
-  responseTimestamp: null,
+  response_timestamp: null,
 };
 
 export const mockDocumentType: DocumentType = {
@@ -71,12 +79,13 @@ export const mockValidationResult: ValidationResult = {
 };
 
 export const mockStepExecutionStatus: StepExecutionStatus = {
-  executionId: 'exec-abc',
+  id: 'exec-abc',
   status: 'SUCCESS',
-  requestTimestamp: '2025-01-01T00:00:00Z',
-  responseTimestamp: '2025-01-01T00:00:01Z',
-  stepId: 'step-1',
-  originalFilename: 'test.pdf',
+  step_id: 'step-1',
+  step_name: 'Test Step',
+  request_timestamp: '2025-01-01T00:00:00Z',
+  response_timestamp: '2025-01-01T00:00:01Z',
+  original_filename: 'test.pdf',
   data: { result: 'processed' },
   error: null,
 };
@@ -85,7 +94,7 @@ export const mockStepExecutionPending: StepExecutionStatus = {
   ...mockStepExecutionStatus,
   status: 'ENQUEUED',
   data: null,
-  responseTimestamp: null,
+  response_timestamp: null,
 };
 
 export const mockKnowledgeBase: KnowledgeBase = {

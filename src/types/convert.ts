@@ -10,6 +10,7 @@ export type ConversionStatusType = 'ENQUEUED' | 'PROCESSING' | 'SUCCESS' | 'ERRO
  * Extracted data from a successful conversion.
  */
 export interface ConversionResult {
+  /** The structured data extracted from the document. */
   data: Record<string, unknown>;
 }
 
@@ -17,28 +18,49 @@ export interface ConversionResult {
  * Status of a conversion operation, as returned by the API.
  */
 export interface ConversionStatus {
-  conversionId: string;
+  /** Unique identifier for this conversion. */
+  conversion_id: string;
+  /** Current status of the conversion. */
   status: ConversionStatusType;
-  statusUrl: string | null;
-  requestTimestamp: string | null;
-  responseTimestamp: string | null;
-  documentTypeCode: string | null;
-  originalFilename: string | null;
+  /** URL to poll for status updates. */
+  status_url: string | null;
+  /** Timestamp when the conversion was requested. */
+  request_timestamp: string | null;
+  /** Timestamp when the conversion completed. */
+  response_timestamp: string | null;
+  /** The document type code used for conversion. */
+  document_type_code: string | null;
+  /** The original filename of the uploaded document. */
+  original_filename: string | null;
+  /** The extracted structured data (populated on success). */
   data: Record<string, unknown> | null;
+  /** Error message (populated on failure). */
   error: string | null;
+  /** Additional metadata attached to the document. */
+  document_metadata?: Record<string, unknown> | null;
 }
 
 /**
  * Parameters for creating a conversion request.
+ *
+ * Provide exactly one of `file`, `url`, or `base64` as the document source.
  */
 export interface ConvertParams {
+  /** The document type code that defines the extraction schema. */
   documentTypeCode: string;
+  /** A file to upload via multipart form. */
   file?: FileInput;
+  /** A URL pointing to the document. */
   url?: string;
+  /** A base64-encoded document string. */
   base64?: string;
+  /** MIME type hint for the document. */
   contentType?: ImageContentType;
+  /** Filename hint for content type detection. */
   filename?: string;
+  /** When `true`, the API waits for conversion to complete before responding. */
   wait?: boolean;
+  /** URL to receive a webhook notification when conversion completes. */
   webhookUrl?: string;
 }
 
