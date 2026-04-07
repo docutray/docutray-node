@@ -140,20 +140,20 @@ class DocumentTypesWithRawResponse {
     ) as Promise<RawResponse<DocumentType>>;
   }
 
-  async create(params: DocumentTypeCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<{ data: DocumentType }>> {
-    return this._client.post<{ data: DocumentType }>(
+  async create(params: DocumentTypeCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<DocumentType>> {
+    return this._client.post<DocumentType>(
       '/api/document-types',
       params,
       { ...options, raw: true },
-    ) as Promise<RawResponse<{ data: DocumentType }>>;
+    ) as Promise<RawResponse<DocumentType>>;
   }
 
-  async update(id: string, params: DocumentTypeUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<{ data: DocumentType }>> {
-    return this._client.put<{ data: DocumentType }>(
+  async update(id: string, params: DocumentTypeUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<DocumentType>> {
+    return this._client.put<DocumentType>(
       `/api/document-types/${id}`,
       params,
       { ...options, raw: true },
-    ) as Promise<RawResponse<{ data: DocumentType }>>;
+    ) as Promise<RawResponse<DocumentType>>;
   }
 
   async validate(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ValidationResult>> {
