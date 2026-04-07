@@ -6,6 +6,7 @@ import { RawResponse } from '../../src/core/raw-response.js';
 import {
   TEST_BASE_URL,
   mockDocumentType,
+  mockDocumentTypeCreated,
   mockValidationResult,
 } from '../helpers/fixtures.js';
 
@@ -114,6 +115,59 @@ describe('DocumentTypes', () => {
     });
   });
 
+  describe('create()', () => {
+    it('creates a document type and unwraps response', async () => {
+      let receivedBody: unknown;
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/document-types`, async ({ request }) => {
+          receivedBody = await request.json();
+          return HttpResponse.json({ data: mockDocumentTypeCreated }, { status: 201 });
+        }),
+      );
+
+      const dt = createDocumentTypes();
+      const result = await dt.create({
+        name: 'Receipt',
+        codeType: 'receipt',
+        description: 'Receipt document type',
+        jsonSchema: { fields: ['total', 'merchant'] },
+        isDraft: true,
+      });
+
+      expect(result.id).toBe('dt-new');
+      expect(result.name).toBe('Receipt');
+      expect(result.codeType).toBe('receipt');
+      expect(result.status).toBe('draft');
+      expect(receivedBody).toMatchObject({
+        name: 'Receipt',
+        codeType: 'receipt',
+        description: 'Receipt document type',
+        jsonSchema: { fields: ['total', 'merchant'] },
+        isDraft: true,
+      });
+    });
+  });
+
+  describe('update()', () => {
+    it('updates a document type and unwraps response', async () => {
+      const updatedType = { ...mockDocumentType, name: 'Updated Invoice', updatedAt: '2025-06-02T00:00:00Z' };
+      let receivedBody: unknown;
+      server.use(
+        http.put(`${TEST_BASE_URL}/api/document-types/dt-789`, async ({ request }) => {
+          receivedBody = await request.json();
+          return HttpResponse.json({ data: updatedType });
+        }),
+      );
+
+      const dt = createDocumentTypes();
+      const result = await dt.update('dt-789', { name: 'Updated Invoice' });
+
+      expect(result.id).toBe('dt-789');
+      expect(result.name).toBe('Updated Invoice');
+      expect(receivedBody).toMatchObject({ name: 'Updated Invoice' });
+    });
+  });
+
   describe('withRawResponse', () => {
     it('returns RawResponse for list()', async () => {
       server.use(
@@ -141,6 +195,39 @@ describe('DocumentTypes', () => {
 
       const dt = createDocumentTypes();
       const raw = await dt.withRawResponse.get('dt-789');
+
+      expect(raw).toBeInstanceOf(RawResponse);
+      expect(raw.statusCode).toBe(200);
+    });
+
+    it('returns RawResponse for create()', async () => {
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/document-types`, () => {
+          return HttpResponse.json({ data: mockDocumentTypeCreated }, { status: 201 });
+        }),
+      );
+
+      const dt = createDocumentTypes();
+      const raw = await dt.withRawResponse.create({
+        name: 'Receipt',
+        codeType: 'receipt',
+        description: 'Receipt document type',
+        jsonSchema: { fields: ['total', 'merchant'] },
+      });
+
+      expect(raw).toBeInstanceOf(RawResponse);
+      expect(raw.statusCode).toBe(201);
+    });
+
+    it('returns RawResponse for update()', async () => {
+      server.use(
+        http.put(`${TEST_BASE_URL}/api/document-types/dt-789`, () => {
+          return HttpResponse.json({ data: mockDocumentType });
+        }),
+      );
+
+      const dt = createDocumentTypes();
+      const raw = await dt.withRawResponse.update('dt-789', { name: 'Updated' });
 
       expect(raw).toBeInstanceOf(RawResponse);
       expect(raw.statusCode).toBe(200);

@@ -1,6 +1,6 @@
 {
   "name": "docutray",
-  "version": "0.1.1-rc.0",
+  "version": "0.1.2",
   "description": "Node.js library for the DocuTray API",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

@@ -38,6 +38,8 @@ export {
 // Document type types
 export type {
   DocumentType,
+  DocumentTypeCreateParams,
+  DocumentTypeUpdateParams,
   ValidationErrorInfo,
   ValidationWarningInfo,
   ValidationResult,

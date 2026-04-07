@@ -68,9 +68,23 @@ export const mockDocumentType: DocumentType = {
   description: 'Standard invoice document',
   isPublic: true,
   isDraft: false,
+  status: 'active',
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-01-01T00:00:00Z',
   schema: { fields: ['total', 'date'] },
+};
+
+export const mockDocumentTypeCreated: DocumentType = {
+  id: 'dt-new',
+  name: 'Receipt',
+  codeType: 'receipt',
+  description: 'Receipt document type',
+  isPublic: false,
+  isDraft: true,
+  status: 'draft',
+  createdAt: '2025-06-01T00:00:00Z',
+  updatedAt: '2025-06-01T00:00:00Z',
+  schema: { fields: ['total', 'merchant'] },
 };
 
 export const mockValidationResult: ValidationResult = {

@@ -2,7 +2,7 @@ import { APIResource } from '../resource.js';
 import type { APIClient } from '../core/api-client.js';
 import { Page } from '../core/pagination.js';
 import type { PageResponse } from '../core/pagination.js';
-import type { DocumentType, DocumentTypesListParams, ValidationResult } from '../types/document-type.js';
+import type { DocumentType, DocumentTypeCreateParams, DocumentTypeUpdateParams, DocumentTypesListParams, ValidationResult } from '../types/document-type.js';
 import type { RequestOptions } from '../core/types.js';
 import type { RawResponse } from '../core/raw-response.js';
 
@@ -60,6 +60,41 @@ export class DocumentTypes extends APIResource {
   }
 
   /**
+   * Creates a new document type.
+   *
+   * @param params - Creation parameters including name, codeType, description, and jsonSchema.
+   * @param options - Per-request options.
+   * @returns The created document type.
+   */
+  async create(params: DocumentTypeCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<DocumentType> {
+    const response = await this._client.post<{ data: DocumentType }>(
+      '/api/document-types',
+      params,
+      options,
+    ) as { data: DocumentType };
+    return response.data;
+  }
+
+  /**
+   * Updates an existing document type.
+   *
+   * Note: `codeType` cannot be changed after creation.
+   *
+   * @param id - The document type identifier.
+   * @param params - Fields to update.
+   * @param options - Per-request options.
+   * @returns The updated document type.
+   */
+  async update(id: string, params: DocumentTypeUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<DocumentType> {
+    const response = await this._client.put<{ data: DocumentType }>(
+      `/api/document-types/${id}`,
+      params,
+      options,
+    ) as { data: DocumentType };
+    return response.data;
+  }
+
+  /**
    * Validates a document type schema.
    *
    * @param id - The document type identifier.
@@ -103,6 +138,22 @@ class DocumentTypesWithRawResponse {
       `/api/document-types/${id}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<DocumentType>>;
+  }
+
+  async create(params: DocumentTypeCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<{ data: DocumentType }>> {
+    return this._client.post<{ data: DocumentType }>(
+      '/api/document-types',
+      params,
+      { ...options, raw: true },
+    ) as Promise<RawResponse<{ data: DocumentType }>>;
+  }
+
+  async update(id: string, params: DocumentTypeUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<{ data: DocumentType }>> {
+    return this._client.put<{ data: DocumentType }>(
+      `/api/document-types/${id}`,
+      params,
+      { ...options, raw: true },
+    ) as Promise<RawResponse<{ data: DocumentType }>>;
   }
 
   async validate(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ValidationResult>> {

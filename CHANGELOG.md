@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-04-07
+
+### Added
+
+- `client.documentTypes.create(params)` method for creating custom document types via `POST /api/document-types`
+- `client.documentTypes.update(id, params)` method for updating document types via `PUT /api/document-types/{id}`
+- `DocumentTypeCreateParams` and `DocumentTypeUpdateParams` type exports
+- `status` field on `DocumentType` interface
+- `withRawResponse` support for `create()` and `update()` methods
+
+## [0.1.1] - Unreleased
+
 ### Added
 
 - TSDoc documentation on all public classes, methods, interfaces, and types

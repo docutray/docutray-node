@@ -1,6 +1,10 @@
 export { Convert } from './convert.js';
 export { Identify } from './identify.js';
 export { DocumentTypes } from './document-types.js';
+export type {
+  DocumentTypeCreateParams,
+  DocumentTypeUpdateParams,
+} from '../types/document-type.js';
 export { Steps } from './steps.js';
 export {
   KnowledgeBases,
