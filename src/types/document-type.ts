@@ -14,6 +14,8 @@ export interface DocumentType {
   isPublic: boolean;
   /** Whether this document type is in draft mode. */
   isDraft: boolean;
+  /** The current status of the document type (e.g. "active", "draft"). */
+  status: string;
   /** ISO 8601 creation timestamp. */
   createdAt: string | null;
   /** ISO 8601 last-updated timestamp. */
@@ -50,6 +52,56 @@ export interface ValidationResult {
   errors: ValidationErrorInfo;
   /** Validation warnings that may indicate potential issues. */
   warnings: ValidationWarningInfo;
+}
+
+/**
+ * Parameters for creating a new document type.
+ */
+export interface DocumentTypeCreateParams {
+  /** Human-readable name (minLength: 2). */
+  name: string;
+  /** Unique code identifier (pattern: ^[a-z0-9_]+$). Cannot be changed after creation. */
+  codeType: string;
+  /** Description of the document type (minLength: 1). */
+  description: string;
+  /** The JSON Schema defining the extraction structure. */
+  jsonSchema: Record<string, unknown>;
+  /** Whether the document type is in draft mode. Defaults to true. */
+  isDraft?: boolean;
+  /** Hints to guide the extraction prompt. */
+  promptHints?: string;
+  /** Hints to guide the identification prompt. */
+  identifyPromptHints?: string;
+  /** The conversion mode to use. */
+  conversionMode?: 'json' | 'toon' | 'multi_prompt';
+  /** Whether to preserve property ordering in extraction output. */
+  keepPropertyOrdering?: boolean;
+  /** Whether the document type is publicly available. */
+  isPublic?: boolean;
+}
+
+/**
+ * Parameters for updating an existing document type.
+ */
+export interface DocumentTypeUpdateParams {
+  /** Updated name. */
+  name?: string;
+  /** Updated description. */
+  description?: string;
+  /** Updated JSON Schema. */
+  jsonSchema?: Record<string, unknown>;
+  /** Whether the document type is in draft mode. */
+  isDraft?: boolean;
+  /** Updated extraction prompt hints. */
+  promptHints?: string;
+  /** Updated identification prompt hints. */
+  identifyPromptHints?: string;
+  /** Updated conversion mode. */
+  conversionMode?: 'json' | 'toon' | 'multi_prompt';
+  /** Whether to preserve property ordering. */
+  keepPropertyOrdering?: boolean;
+  /** Whether the document type is publicly available. */
+  isPublic?: boolean;
 }
 
 /**

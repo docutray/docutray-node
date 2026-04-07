@@ -83,6 +83,8 @@ export {
   KnowledgeBaseDocuments,
 } from './resources/index.js';
 export type {
+  DocumentTypeCreateParams,
+  DocumentTypeUpdateParams,
   KnowledgeBaseCreateParams,
   KnowledgeBaseUpdateParams,
   KnowledgeBaseSearchParams,
