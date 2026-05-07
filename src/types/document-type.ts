@@ -20,8 +20,8 @@ export interface DocumentType {
   createdAt: string | null;
   /** ISO 8601 last-updated timestamp. */
   updatedAt: string | null;
-  /** The extraction schema definition. */
-  schema: Record<string, unknown> | null;
+  /** The JSON Schema defining the extraction structure. */
+  jsonSchema: Record<string, unknown> | null;
 }
 
 /**

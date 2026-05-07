@@ -84,10 +84,10 @@ describe('DocumentTypes', () => {
   });
 
   describe('get()', () => {
-    it('fetches a document type by id', async () => {
+    it('fetches a document type by id and unwraps response', async () => {
       server.use(
         http.get(`${TEST_BASE_URL}/api/document-types/dt-789`, () => {
-          return HttpResponse.json(mockDocumentType);
+          return HttpResponse.json({ data: mockDocumentType });
         }),
       );
 
@@ -96,6 +96,8 @@ describe('DocumentTypes', () => {
 
       expect(result.id).toBe('dt-789');
       expect(result.name).toBe('Invoice');
+      expect(result.codeType).toBe('invoice');
+      expect(result.jsonSchema).toEqual({ fields: ['total', 'date'] });
     });
   });
 
@@ -189,7 +191,7 @@ describe('DocumentTypes', () => {
     it('returns RawResponse for get()', async () => {
       server.use(
         http.get(`${TEST_BASE_URL}/api/document-types/dt-789`, () => {
-          return HttpResponse.json(mockDocumentType);
+          return HttpResponse.json({ data: mockDocumentType });
         }),
       );
 

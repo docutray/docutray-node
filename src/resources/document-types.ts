@@ -53,10 +53,11 @@ export class DocumentTypes extends APIResource {
    * @returns The document type definition.
    */
   async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<DocumentType> {
-    return this._client.get<DocumentType>(
+    const response = await this._client.get<{ data: DocumentType }>(
       `/api/document-types/${id}`,
       options,
-    ) as Promise<DocumentType>;
+    ) as { data: DocumentType };
+    return response.data;
   }
 
   /**

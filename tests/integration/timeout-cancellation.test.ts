@@ -8,7 +8,7 @@ describe('Integration: Timeout & Cancellation', () => {
     server.use(
       http.get(`${TEST_BASE_URL}/api/document-types/dt-1`, async () => {
         await new Promise((resolve) => setTimeout(resolve, 500));
-        return HttpResponse.json(mockDocumentType);
+        return HttpResponse.json({ data: mockDocumentType });
       }),
     );
 
@@ -22,7 +22,7 @@ describe('Integration: Timeout & Cancellation', () => {
     server.use(
       http.get(`${TEST_BASE_URL}/api/document-types/dt-1`, async () => {
         await new Promise((resolve) => setTimeout(resolve, 5000));
-        return HttpResponse.json(mockDocumentType);
+        return HttpResponse.json({ data: mockDocumentType });
       }),
     );
 

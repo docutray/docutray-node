@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-07
+
+### Fixed
+
+- `client.documentTypes.get(id)` now correctly unwraps the `{ data }` envelope returned by `GET /api/document-types/:id` and returns a flat `DocumentType`. Previously the wrapper leaked through, causing every field to read as `undefined` despite the declared type. Aligns `get()` with the pattern already used by `create()` and `update()`.
+
+### Changed
+
+- **Breaking (type-only):** `DocumentType.schema` renamed to `DocumentType.jsonSchema` to match the API wire format and the `jsonSchema` field already used in `DocumentTypeCreateParams` and `DocumentTypeUpdateParams`. The runtime field never arrived under the old name, so no real consumer is affected, but TypeScript code reading `.schema` will need to update to `.jsonSchema`.
+
 ## [0.1.2] - 2026-04-07
 
 ### Added

@@ -71,7 +71,7 @@ export const mockDocumentType: DocumentType = {
   status: 'active',
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-01-01T00:00:00Z',
-  schema: { fields: ['total', 'date'] },
+  jsonSchema: { fields: ['total', 'date'] },
 };
 
 export const mockDocumentTypeCreated: DocumentType = {
@@ -84,7 +84,7 @@ export const mockDocumentTypeCreated: DocumentType = {
   status: 'draft',
   createdAt: '2025-06-01T00:00:00Z',
   updatedAt: '2025-06-01T00:00:00Z',
-  schema: { fields: ['total', 'merchant'] },
+  jsonSchema: { fields: ['total', 'merchant'] },
 };
 
 export const mockValidationResult: ValidationResult = {
