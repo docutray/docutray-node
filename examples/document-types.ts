@@ -40,7 +40,7 @@ async function getDocumentType(id: string) {
   console.log('Name:', dt.name);
   console.log('Code:', dt.codeType);
   console.log('Description:', dt.description);
-  console.log('Schema:', JSON.stringify(dt.schema, null, 2));
+  console.log('Schema:', JSON.stringify(dt.jsonSchema, null, 2));
 }
 
 async function validateDocumentType(id: string) {

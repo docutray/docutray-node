@@ -12,7 +12,7 @@ describe('Integration: Retry', () => {
         if (attempt === 1) {
           return HttpResponse.json({ message: 'Internal error' }, { status: 500 });
         }
-        return HttpResponse.json(mockDocumentType);
+        return HttpResponse.json({ data: mockDocumentType });
       }),
     );
 

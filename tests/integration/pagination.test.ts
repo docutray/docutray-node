@@ -14,9 +14,10 @@ function makePage(page: number, limit: number, total: number) {
       description: `Document type ${start + i + 1}`,
       isPublic: true,
       isDraft: false,
+      status: 'active',
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-01-01T00:00:00Z',
-      schema: null,
+      jsonSchema: null,
     });
   }
   return {
