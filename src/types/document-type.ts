@@ -1,4 +1,9 @@
 /**
+ * Conversion mode used when extracting from a document type.
+ */
+export type ConversionMode = 'json' | 'toon' | 'multi_prompt';
+
+/**
  * A document type definition from the API.
  */
 export interface DocumentType {
@@ -22,6 +27,8 @@ export interface DocumentType {
   updatedAt: string | null;
   /** The JSON Schema defining the extraction structure. */
   jsonSchema: Record<string, unknown> | null;
+  /** Conversion mode used when extracting from this document type. */
+  conversionMode?: ConversionMode;
 }
 
 /**
@@ -73,7 +80,7 @@ export interface DocumentTypeCreateParams {
   /** Hints to guide the identification prompt. */
   identifyPromptHints?: string;
   /** The conversion mode to use. */
-  conversionMode?: 'json' | 'toon' | 'multi_prompt';
+  conversionMode?: ConversionMode;
   /** Whether to preserve property ordering in extraction output. */
   keepPropertyOrdering?: boolean;
   /** Whether the document type is publicly available. */
@@ -97,7 +104,7 @@ export interface DocumentTypeUpdateParams {
   /** Updated identification prompt hints. */
   identifyPromptHints?: string;
   /** Updated conversion mode. */
-  conversionMode?: 'json' | 'toon' | 'multi_prompt';
+  conversionMode?: ConversionMode;
   /** Whether to preserve property ordering. */
   keepPropertyOrdering?: boolean;
   /** Whether the document type is publicly available. */

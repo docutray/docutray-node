@@ -98,6 +98,23 @@ describe('DocumentTypes', () => {
       expect(result.name).toBe('Invoice');
       expect(result.codeType).toBe('invoice');
       expect(result.jsonSchema).toEqual({ fields: ['total', 'date'] });
+      expect(result.conversionMode).toBe('json');
+    });
+
+    it('exposes conversionMode without requiring a cast', async () => {
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/document-types/dt-789`, () => {
+          return HttpResponse.json({
+            data: { ...mockDocumentType, conversionMode: 'toon' },
+          });
+        }),
+      );
+
+      const dt = createDocumentTypes();
+      const result = await dt.get('dt-789');
+
+      const mode: 'json' | 'toon' | 'multi_prompt' | undefined = result.conversionMode;
+      expect(mode).toBe('toon');
     });
   });
 

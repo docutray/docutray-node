@@ -112,6 +112,7 @@ export type {
   IdentificationStatus,
   IdentifyParams,
   DocumentType,
+  ConversionMode,
   ValidationErrorInfo,
   ValidationWarningInfo,
   ValidationResult,

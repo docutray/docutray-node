@@ -37,6 +37,7 @@ export {
 
 // Document type types
 export type {
+  ConversionMode,
   DocumentType,
   DocumentTypeCreateParams,
   DocumentTypeUpdateParams,
