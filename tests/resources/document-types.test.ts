@@ -3,6 +3,7 @@ import { server, http, HttpResponse } from '../helpers/mock-server.js';
 import { DocumentTypes } from '../../src/resources/document-types.js';
 import { APIClient } from '../../src/core/api-client.js';
 import { RawResponse } from '../../src/core/raw-response.js';
+import type { ConversionMode } from '../../src/types/document-type.js';
 import {
   TEST_BASE_URL,
   mockDocumentType,
@@ -113,7 +114,7 @@ describe('DocumentTypes', () => {
       const dt = createDocumentTypes();
       const result = await dt.get('dt-789');
 
-      const mode: 'json' | 'toon' | 'multi_prompt' | undefined = result.conversionMode;
+      const mode: ConversionMode | undefined = result.conversionMode;
       expect(mode).toBe('toon');
     });
   });
