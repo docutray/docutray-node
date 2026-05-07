@@ -72,6 +72,7 @@ export const mockDocumentType: DocumentType = {
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-01-01T00:00:00Z',
   jsonSchema: { fields: ['total', 'date'] },
+  conversionMode: 'json',
 };
 
 export const mockDocumentTypeCreated: DocumentType = {
@@ -85,6 +86,7 @@ export const mockDocumentTypeCreated: DocumentType = {
   createdAt: '2025-06-01T00:00:00Z',
   updatedAt: '2025-06-01T00:00:00Z',
   jsonSchema: { fields: ['total', 'merchant'] },
+  conversionMode: 'multi_prompt',
 };
 
 export const mockValidationResult: ValidationResult = {
