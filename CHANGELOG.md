@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-05-07
+
+### Added
+
+- `conversionMode` field on `DocumentType` so consumers can read it directly from API responses without casting (closes #21).
+- New exported `ConversionMode` type (`'json' | 'toon' | 'multi_prompt'`), shared across `DocumentType`, `DocumentTypeCreateParams`, and `DocumentTypeUpdateParams`.
+
 ## [0.1.3] - 2026-05-07
 
 ### Fixed
