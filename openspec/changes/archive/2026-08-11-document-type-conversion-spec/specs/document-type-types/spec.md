@@ -1,71 +1,4 @@
-# document-type-types Specification
-
-## Purpose
-TypeScript types and helper functions for document type definitions, validation results, and listing parameters.
-## Requirements
-### Requirement: DocumentType interface
-The SDK SHALL export a `DocumentType` interface with properties: `id` (string), `name` (string), `codeType` (string), `description` (string | null), `isPublic` (boolean), `isDraft` (boolean), `status` (string), `createdAt` (string | null, ISO 8601), `updatedAt` (string | null, ISO 8601), `jsonSchema` (Record<string, unknown> | null), the optional `conversionMode` (`ConversionMode`), and the optional `conversionSpec` (`ConversionSpec | null`).
-
-`conversionSpec` is optional because only the single-document-type endpoints return it; responses that omit the field (the list endpoint, or API deployments predating its exposure) MUST still be assignable to `DocumentType`.
-
-#### Scenario: Public document type
-- **WHEN** a document type `{ "id": "dt1", "name": "Invoice", "codeType": "invoice", "isPublic": true, "isDraft": false }` is returned
-- **THEN** it SHALL be assignable to `DocumentType`
-
-#### Scenario: Document type with schema
-- **WHEN** a document type is retrieved by ID and includes a JSON schema in `jsonSchema`
-- **THEN** `jsonSchema` SHALL be `Record<string, unknown>` containing the JSON schema definition
-
-#### Scenario: Document type with conversion spec
-- **WHEN** a document type is retrieved by ID and the response includes a `conversionSpec`
-- **THEN** the SDK SHALL surface it as `conversionSpec` typed `ConversionSpec | null | undefined`, readable without a cast
-
-#### Scenario: Document type without conversion spec
-- **WHEN** the retrieved document type has no stored conversion spec and the API returns `conversionSpec: null`
-- **THEN** `conversionSpec` SHALL be `null` and remain assignable to `DocumentType`
-
-### Requirement: ValidationErrorInfo interface
-The SDK SHALL export a `ValidationErrorInfo` interface with properties: `count` (number), `messages` (string[]).
-
-#### Scenario: Validation errors
-- **WHEN** a validation returns `{ "count": 2, "messages": ["field required", "invalid format"] }`
-- **THEN** it SHALL be assignable to `ValidationErrorInfo`
-
-### Requirement: ValidationWarningInfo interface
-The SDK SHALL export a `ValidationWarningInfo` interface with properties: `count` (number), `messages` (string[]).
-
-#### Scenario: Validation warnings
-- **WHEN** a validation returns `{ "count": 1, "messages": ["field deprecated"] }`
-- **THEN** it SHALL be assignable to `ValidationWarningInfo`
-
-### Requirement: ValidationResult interface
-The SDK SHALL export a `ValidationResult` interface with properties: `errors` (ValidationErrorInfo), `warnings` (ValidationWarningInfo).
-
-#### Scenario: Valid document type
-- **WHEN** validation returns `{ "errors": { "count": 0, "messages": [] }, "warnings": { "count": 0, "messages": [] } }`
-- **THEN** it SHALL be assignable to `ValidationResult` with zero errors and warnings
-
-### Requirement: Validation type-guard functions
-The SDK SHALL export functions `isValidationValid(result: ValidationResult): boolean` (returns true when `errors.count === 0`) and `hasValidationWarnings(result: ValidationResult): boolean` (returns true when `warnings.count > 0`).
-
-#### Scenario: Check validation is valid
-- **WHEN** `isValidationValid` is called with a result where `errors.count` is `0`
-- **THEN** it SHALL return `true`
-
-#### Scenario: Check validation has warnings
-- **WHEN** `hasValidationWarnings` is called with a result where `warnings.count` is `3`
-- **THEN** it SHALL return `true`
-
-### Requirement: DocumentTypesListParams interface
-The SDK SHALL export a `DocumentTypesListParams` interface with optional properties: `page` (number), `limit` (number), `search` (string).
-
-#### Scenario: List with search filter
-- **WHEN** params include `{ search: "invoice", page: 1, limit: 20 }`
-- **THEN** they SHALL be assignable to `DocumentTypesListParams`
-
-#### Scenario: List with defaults
-- **WHEN** an empty object `{}` is provided
-- **THEN** it SHALL be assignable to `DocumentTypesListParams` (all fields optional)
+## ADDED Requirements
 
 ### Requirement: ConversionSpec type family
 The SDK SHALL export the types describing a document type's conversion spec (the mapping from extracted JSON to CSV/Excel columns used by tray export):
@@ -150,3 +83,25 @@ The SDK SHALL NOT validate the structure of a `conversionSpec` client-side. When
 - **WHEN** a spec the SDK cannot statically prove valid is passed at runtime (for example an object built from parsed JSON)
 - **THEN** the SDK SHALL send it to the API rather than throwing locally
 
+## MODIFIED Requirements
+
+### Requirement: DocumentType interface
+The SDK SHALL export a `DocumentType` interface with properties: `id` (string), `name` (string), `codeType` (string), `description` (string | null), `isPublic` (boolean), `isDraft` (boolean), `status` (string), `createdAt` (string | null, ISO 8601), `updatedAt` (string | null, ISO 8601), `jsonSchema` (Record<string, unknown> | null), the optional `conversionMode` (`ConversionMode`), and the optional `conversionSpec` (`ConversionSpec | null`).
+
+`conversionSpec` is optional because only the single-document-type endpoints return it; responses that omit the field (the list endpoint, or API deployments predating its exposure) MUST still be assignable to `DocumentType`.
+
+#### Scenario: Public document type
+- **WHEN** a document type `{ "id": "dt1", "name": "Invoice", "codeType": "invoice", "isPublic": true, "isDraft": false }` is returned
+- **THEN** it SHALL be assignable to `DocumentType`
+
+#### Scenario: Document type with schema
+- **WHEN** a document type is retrieved by ID and includes a JSON schema in `jsonSchema`
+- **THEN** `jsonSchema` SHALL be `Record<string, unknown>` containing the JSON schema definition
+
+#### Scenario: Document type with conversion spec
+- **WHEN** a document type is retrieved by ID and the response includes a `conversionSpec`
+- **THEN** the SDK SHALL surface it as `conversionSpec` typed `ConversionSpec | null | undefined`, readable without a cast
+
+#### Scenario: Document type without conversion spec
+- **WHEN** the retrieved document type has no stored conversion spec and the API returns `conversionSpec: null`
+- **THEN** `conversionSpec` SHALL be `null` and remain assignable to `DocumentType`

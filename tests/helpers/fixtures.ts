@@ -73,6 +73,12 @@ export const mockDocumentType: DocumentType = {
   updatedAt: '2025-01-01T00:00:00Z',
   jsonSchema: { fields: ['total', 'date'] },
   conversionMode: 'json',
+  conversionSpec: {
+    columns: [
+      { header: 'Invoice Number', jsonPath: '$.invoice_number' },
+      { header: 'Total', jsonPath: '$.total_amount' },
+    ],
+  },
 };
 
 export const mockDocumentTypeCreated: DocumentType = {

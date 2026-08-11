@@ -4,6 +4,58 @@
 export type ConversionMode = 'json' | 'toon' | 'multi_prompt';
 
 /**
+ * A single column in a conversion spec.
+ *
+ * `jsonPath` is optional: formula columns carry a `formula` instead, and the API
+ * also accepts placeholder data columns with no path (they export as empty cells).
+ */
+export interface ConversionSpecColumn {
+  /** Column header text in the exported CSV/Excel file. */
+  header: string;
+  /** JSONPath expression selecting the value for this column. */
+  jsonPath?: string;
+  /** Column kind. Defaults to `'data'` when omitted. */
+  type?: 'data' | 'formula';
+  /** Excel formula, used only when `type` is `'formula'`. */
+  formula?: string;
+}
+
+/**
+ * A single sheet in a multi-sheet conversion spec.
+ */
+export interface ConversionSpecSheet {
+  /** Sheet name. Must be unique within the spec. */
+  name: string;
+  /** Columns exported in this sheet. */
+  columns: ConversionSpecColumn[];
+}
+
+/**
+ * Legacy (single-table) conversion spec.
+ */
+export interface LegacyConversionSpec {
+  /** Columns exported to the single output table. An empty array is valid. */
+  columns: ConversionSpecColumn[];
+}
+
+/**
+ * Multi-sheet conversion spec.
+ */
+export interface MultiSheetConversionSpec {
+  /** Sheets exported to the output workbook. */
+  sheets: ConversionSpecSheet[];
+}
+
+/**
+ * Mapping from extracted JSON to CSV/Excel columns, used by tray export.
+ *
+ * Either the legacy single-table format (top-level `columns`) or the
+ * multi-sheet format (top-level `sheets`). Use
+ * {@link isMultiSheetConversionSpec} to narrow the union.
+ */
+export type ConversionSpec = LegacyConversionSpec | MultiSheetConversionSpec;
+
+/**
  * A document type definition from the API.
  */
 export interface DocumentType {
@@ -29,6 +81,13 @@ export interface DocumentType {
   jsonSchema: Record<string, unknown> | null;
   /** Conversion mode used when extracting from this document type. */
   conversionMode?: ConversionMode;
+  /**
+   * Mapping from extracted JSON to CSV/Excel columns for tray export.
+   *
+   * `null` when no spec is stored. Absent from list responses, which only
+   * return it on the single-document-type endpoints.
+   */
+  conversionSpec?: ConversionSpec | null;
 }
 
 /**
@@ -85,6 +144,13 @@ export interface DocumentTypeCreateParams {
   keepPropertyOrdering?: boolean;
   /** Whether the document type is publicly available. */
   isPublic?: boolean;
+  /**
+   * Mapping from extracted JSON to CSV/Excel columns for tray export.
+   *
+   * Omit (or pass `null`) to create the document type without a spec. A
+   * structurally invalid spec is rejected by the API with a `BadRequestError`.
+   */
+  conversionSpec?: ConversionSpec | null;
 }
 
 /**
@@ -109,6 +175,13 @@ export interface DocumentTypeUpdateParams {
   keepPropertyOrdering?: boolean;
   /** Whether the document type is publicly available. */
   isPublic?: boolean;
+  /**
+   * Mapping from extracted JSON to CSV/Excel columns for tray export.
+   *
+   * Omit to leave the stored spec unchanged, or pass `null` to clear it. A
+   * structurally invalid spec is rejected by the API with a `BadRequestError`.
+   */
+  conversionSpec?: ConversionSpec | null;
 }
 
 /**
@@ -135,4 +208,12 @@ export function isValidationValid(result: ValidationResult): boolean {
  */
 export function hasValidationWarnings(result: ValidationResult): boolean {
   return result.warnings.count > 0;
+}
+
+/**
+ * Returns `true` if the conversion spec uses the multi-sheet format, narrowing
+ * it to {@link MultiSheetConversionSpec}.
+ */
+export function isMultiSheetConversionSpec(spec: ConversionSpec): spec is MultiSheetConversionSpec {
+  return 'sheets' in spec && !('columns' in spec);
 }
