@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-08-11
+
+### Added
+
+- `conversionSpec` field on `DocumentType`, `DocumentTypeCreateParams`, and `DocumentTypeUpdateParams` — the mapping from extracted JSON to CSV/Excel columns used by tray export, now exposed by the API on `GET`/`POST`/`PUT /api/document-types` (docutray/docutray#972). Optional, because list responses do not carry it.
+- New exported conversion-spec types: `ConversionSpec` (the union), `ConversionSpecColumn`, `ConversionSpecSheet`, `LegacyConversionSpec` (top-level `columns`), and `MultiSheetConversionSpec` (top-level `sheets`).
+- New exported `isMultiSheetConversionSpec(spec)` type guard, which narrows the union and accepts `null`/`undefined` so it can be called directly on `DocumentType.conversionSpec`.
+
+### Notes
+
+- Omitting `conversionSpec` on update leaves the stored spec unchanged; passing `null` clears it. When forwarding a spec read from a `DocumentType`, pass it through as-is (`{ conversionSpec: docType.conversionSpec }`) — do **not** normalize with `?? null`, which would turn the absent field of a `list()` result into a request to clear the stored spec.
+- Conversion specs are validated server-side only; a structurally invalid spec is rejected with `BadRequestError` and nothing is persisted.
+- Requires an API deployment including docutray/docutray#972. Older deployments omit the field on read and ignore it on write.
+
 ## [0.1.4] - 2026-05-07
 
 ### Added
