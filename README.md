@@ -225,6 +225,82 @@ if (validation.isValid()) {
 }
 ```
 
+#### Conversion specs
+
+A document type can carry a `conversionSpec`: the mapping from extracted JSON to
+CSV/Excel columns used by tray export. It comes in two formats — legacy
+(top-level `columns`) and multi-sheet (top-level `sheets`).
+
+```typescript
+import { isMultiSheetConversionSpec } from 'docutray';
+
+// Read the stored spec (null when the document type has none)
+const docType = await client.documentTypes.get('dt_invoice');
+if (isMultiSheetConversionSpec(docType.conversionSpec)) {
+  console.log(docType.conversionSpec.sheets.map((sheet) => sheet.name));
+}
+
+// Create with a legacy spec
+await client.documentTypes.create({
+  name: 'Invoice',
+  codeType: 'invoice',
+  description: 'Standard invoice',
+  jsonSchema: { type: 'object' },
+  conversionSpec: {
+    columns: [
+      { header: 'Invoice Number', jsonPath: '$.invoice_number' },
+      { header: 'Total', jsonPath: '$.total_amount' },
+    ],
+  },
+});
+
+// Update with a multi-sheet spec
+await client.documentTypes.update('dt_invoice', {
+  conversionSpec: {
+    sheets: [
+      {
+        name: 'Header',
+        columns: [{ header: 'Invoice Number', jsonPath: '$.invoice_number' }],
+      },
+      {
+        name: 'Line Items',
+        columns: [
+          { header: 'SKU', jsonPath: '$.items[*].sku' },
+          { header: 'Amount', type: 'formula', formula: '=B2*C2' },
+        ],
+      },
+    ],
+  },
+});
+
+// Omit conversionSpec to leave the stored spec untouched; pass null to clear it
+await client.documentTypes.update('dt_invoice', { conversionSpec: null });
+```
+
+When forwarding a spec read from a document type, pass it straight through —
+`undefined` is dropped from the request body, so the stored spec is left alone:
+
+```typescript
+// Safe: omits the key when the source has no conversionSpec
+await client.documentTypes.update(docType.id, {
+  name: 'Renamed',
+  conversionSpec: docType.conversionSpec,
+});
+```
+
+> **Do not normalize with `?? null`.** Document types from `list()` — and from
+> API deployments predating the field — carry no `conversionSpec`, so
+> `conversionSpec: docType.conversionSpec ?? null` would turn "not loaded" into
+> "clear the stored spec" and silently discard it.
+
+The SDK does not validate specs client-side — the API does. A structurally
+invalid spec is rejected with a `BadRequestError` carrying the API's message,
+and nothing is persisted.
+
+> `conversionSpec` requires an API deployment that includes
+> [docutray#972](https://github.com/docutray/docutray/pull/972). Older
+> deployments omit the field on read and ignore it on write.
+
 ### Steps
 
 Execute predefined document processing workflows.

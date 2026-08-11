@@ -38,6 +38,11 @@ export {
 // Document type types
 export type {
   ConversionMode,
+  ConversionSpec,
+  ConversionSpecColumn,
+  ConversionSpecSheet,
+  LegacyConversionSpec,
+  MultiSheetConversionSpec,
   DocumentType,
   DocumentTypeCreateParams,
   DocumentTypeUpdateParams,
@@ -49,6 +54,7 @@ export type {
 export {
   isValidationValid,
   hasValidationWarnings,
+  isMultiSheetConversionSpec,
 } from './document-type.js';
 
 // Step types

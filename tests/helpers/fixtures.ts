@@ -2,7 +2,7 @@ import { APIClient } from '../../src/core/api-client.js';
 import { DocuTray } from '../../src/client.js';
 import type { ConversionStatus } from '../../src/types/convert.js';
 import type { IdentificationStatus } from '../../src/types/identify.js';
-import type { DocumentType, ValidationResult } from '../../src/types/document-type.js';
+import type { ConversionSpec, DocumentType, ValidationResult } from '../../src/types/document-type.js';
 import type { StepExecutionStatus } from '../../src/types/step.js';
 import type { KnowledgeBase, KnowledgeBaseDocument, SearchResult, SyncResult } from '../../src/types/knowledge-base.js';
 
@@ -73,6 +73,23 @@ export const mockDocumentType: DocumentType = {
   updatedAt: '2025-01-01T00:00:00Z',
   jsonSchema: { fields: ['total', 'date'] },
   conversionMode: 'json',
+};
+
+/**
+ * Conversion spec for the single-document-type endpoints. Kept off
+ * `mockDocumentType` because list responses do not carry the field.
+ */
+export const mockConversionSpec: ConversionSpec = {
+  columns: [
+    { header: 'Invoice Number', jsonPath: '$.invoice_number' },
+    { header: 'Total', jsonPath: '$.total_amount' },
+  ],
+};
+
+/** A document type as returned by the single-document-type endpoints. */
+export const mockDocumentTypeWithSpec: DocumentType = {
+  ...mockDocumentType,
+  conversionSpec: mockConversionSpec,
 };
 
 export const mockDocumentTypeCreated: DocumentType = {
