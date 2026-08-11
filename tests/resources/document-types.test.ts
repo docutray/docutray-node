@@ -14,8 +14,10 @@ import type {
 import { isMultiSheetConversionSpec } from '../../src/types/document-type.js';
 import {
   TEST_BASE_URL,
+  mockConversionSpec,
   mockDocumentType,
   mockDocumentTypeCreated,
+  mockDocumentTypeWithSpec,
   mockValidationResult,
 } from '../helpers/fixtures.js';
 
@@ -209,7 +211,7 @@ describe('DocumentTypes', () => {
     it('exposes conversionSpec on get() without requiring a cast', async () => {
       server.use(
         http.get(`${TEST_BASE_URL}/api/document-types/dt-789`, () => {
-          return HttpResponse.json({ data: mockDocumentType });
+          return HttpResponse.json({ data: mockDocumentTypeWithSpec });
         }),
       );
 
@@ -217,12 +219,7 @@ describe('DocumentTypes', () => {
       const result = await dt.get('dt-789');
 
       const spec: ConversionSpec | null | undefined = result.conversionSpec;
-      expect(spec).toEqual({
-        columns: [
-          { header: 'Invoice Number', jsonPath: '$.invoice_number' },
-          { header: 'Total', jsonPath: '$.total_amount' },
-        ],
-      });
+      expect(spec).toEqual(mockConversionSpec);
     });
 
     it('surfaces a null conversionSpec from get()', async () => {
@@ -342,19 +339,64 @@ describe('DocumentTypes', () => {
       let receivedBody: Record<string, unknown> | undefined;
       server.use(
         http.get(`${TEST_BASE_URL}/api/document-types/dt-789`, () => {
-          return HttpResponse.json({ data: mockDocumentType });
+          return HttpResponse.json({ data: mockDocumentTypeWithSpec });
         }),
         http.put(`${TEST_BASE_URL}/api/document-types/dt-789`, async ({ request }) => {
           receivedBody = (await request.json()) as Record<string, unknown>;
-          return HttpResponse.json({ data: mockDocumentType });
+          return HttpResponse.json({ data: mockDocumentTypeWithSpec });
         }),
       );
 
       const dt = createDocumentTypes();
       const fetched = await dt.get('dt-789');
-      await dt.update('dt-789', { conversionSpec: fetched.conversionSpec ?? null });
+      await dt.update('dt-789', { conversionSpec: fetched.conversionSpec });
 
-      expect(receivedBody?.conversionSpec).toEqual(mockDocumentType.conversionSpec);
+      expect(receivedBody?.conversionSpec).toEqual(mockConversionSpec);
+    });
+
+    it('is absent from list() responses', async () => {
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/document-types`, () => {
+          return HttpResponse.json({
+            data: [mockDocumentType],
+            pagination: { total: 1, page: 1, limit: 10 },
+          });
+        }),
+      );
+
+      const dt = createDocumentTypes();
+      const page = await dt.list();
+
+      expect(page.data[0].conversionSpec).toBeUndefined();
+    });
+
+    it('leaves the stored spec untouched when forwarding an absent spec', async () => {
+      // Regression guard: a document type from list() (or from an API
+      // deployment predating the field) has no conversionSpec. Forwarding it
+      // as-is must omit the key, NOT send null — null would clear the spec.
+      let receivedBody: Record<string, unknown> | undefined;
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/document-types`, () => {
+          return HttpResponse.json({
+            data: [mockDocumentType],
+            pagination: { total: 1, page: 1, limit: 10 },
+          });
+        }),
+        http.put(`${TEST_BASE_URL}/api/document-types/dt-789`, async ({ request }) => {
+          receivedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ data: mockDocumentTypeWithSpec });
+        }),
+      );
+
+      const dt = createDocumentTypes();
+      const listed = (await dt.list()).data[0];
+      await dt.update(listed.id, {
+        name: 'Renamed',
+        conversionSpec: listed.conversionSpec,
+      });
+
+      expect(receivedBody).not.toHaveProperty('conversionSpec');
+      expect(receivedBody).toMatchObject({ name: 'Renamed' });
     });
 
     it('accepts the permissive spec shapes the API tolerates', () => {
@@ -416,6 +458,23 @@ describe('DocumentTypes', () => {
         if (!isMultiSheetConversionSpec(spec)) {
           expect(spec.columns[0].header).toBe('Invoice Number');
         }
+      });
+
+      it('accepts a nullish spec without throwing', () => {
+        // Callable directly on DocumentType.conversionSpec, which is absent
+        // on list responses. A JS consumer must get false, not a TypeError.
+        expect(isMultiSheetConversionSpec(undefined)).toBe(false);
+        expect(isMultiSheetConversionSpec(null)).toBe(false);
+        expect(isMultiSheetConversionSpec(mockDocumentType.conversionSpec)).toBe(false);
+      });
+
+      it('classifies a spec carrying both keys as multi-sheet', () => {
+        // The API rejects both-keys specs with a 400, so one can only be built
+        // locally. Honoring `sheets` drops less than falling through to an
+        // empty `columns` would.
+        const both = { sheets: multiSheetSpec.sheets, columns: [] } as ConversionSpec;
+
+        expect(isMultiSheetConversionSpec(both)).toBe(true);
       });
     });
   });

@@ -180,6 +180,13 @@ export interface DocumentTypeUpdateParams {
    *
    * Omit to leave the stored spec unchanged, or pass `null` to clear it. A
    * structurally invalid spec is rejected by the API with a `BadRequestError`.
+   *
+   * When forwarding a spec read from a {@link DocumentType}, pass it through
+   * as-is (`{ conversionSpec: docType.conversionSpec }`) — `undefined` is
+   * dropped from the request body, leaving the stored spec untouched. Do NOT
+   * normalize with `?? null`: document types from `list()` (and from API
+   * deployments predating the field) have no `conversionSpec`, so `?? null`
+   * would turn "not loaded" into "clear the stored spec".
    */
   conversionSpec?: ConversionSpec | null;
 }
@@ -213,7 +220,12 @@ export function hasValidationWarnings(result: ValidationResult): boolean {
 /**
  * Returns `true` if the conversion spec uses the multi-sheet format, narrowing
  * it to {@link MultiSheetConversionSpec}.
+ *
+ * Accepts `null` and `undefined` (returning `false`) so it can be called
+ * directly on `DocumentType.conversionSpec`, which is absent on list responses.
  */
-export function isMultiSheetConversionSpec(spec: ConversionSpec): spec is MultiSheetConversionSpec {
-  return 'sheets' in spec && !('columns' in spec);
+export function isMultiSheetConversionSpec(
+  spec: ConversionSpec | null | undefined,
+): spec is MultiSheetConversionSpec {
+  return typeof spec === 'object' && spec !== null && 'sheets' in spec;
 }

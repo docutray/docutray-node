@@ -9,8 +9,8 @@ The SDK SHALL export a `DocumentType` interface with properties: `id` (string), 
 `conversionSpec` is optional because only the single-document-type endpoints return it; responses that omit the field (the list endpoint, or API deployments predating its exposure) MUST still be assignable to `DocumentType`.
 
 #### Scenario: Public document type
-- **WHEN** a document type `{ "id": "dt1", "name": "Invoice", "codeType": "invoice", "isPublic": true, "isDraft": false }` is returned
-- **THEN** it SHALL be assignable to `DocumentType`
+- **WHEN** a document type `{ "id": "dt1", "name": "Invoice", "codeType": "invoice", "description": null, "isPublic": true, "isDraft": false, "status": "active", "createdAt": null, "updatedAt": null, "jsonSchema": null }` is returned
+- **THEN** it SHALL be assignable to `DocumentType` without supplying `conversionMode` or `conversionSpec`
 
 #### Scenario: Document type with schema
 - **WHEN** a document type is retrieved by ID and includes a JSON schema in `jsonSchema`
@@ -95,7 +95,9 @@ The SDK SHALL export the types describing a document type's conversion spec (the
 - **THEN** it SHALL be assignable to `ConversionSpec`, matching the API's tolerance for empty legacy specs
 
 ### Requirement: isMultiSheetConversionSpec type guard
-The SDK SHALL export a function `isMultiSheetConversionSpec(spec: ConversionSpec): spec is MultiSheetConversionSpec` that returns `true` when the spec carries a `sheets` array and no `columns` property, and narrows the union for the caller.
+The SDK SHALL export a function `isMultiSheetConversionSpec(spec: ConversionSpec | null | undefined): spec is MultiSheetConversionSpec` that returns `true` when the spec carries a `sheets` property, and narrows the union for the caller.
+
+The parameter MUST accept `null` and `undefined` so the guard is callable directly on `DocumentType.conversionSpec`, which is absent on list responses; a nullish argument MUST return `false` rather than throwing.
 
 #### Scenario: Narrowing a multi-sheet spec
 - **WHEN** `isMultiSheetConversionSpec` is called with `{ sheets: [...] }`
@@ -104,6 +106,14 @@ The SDK SHALL export a function `isMultiSheetConversionSpec(spec: ConversionSpec
 #### Scenario: Legacy spec is not multi-sheet
 - **WHEN** `isMultiSheetConversionSpec` is called with `{ columns: [...] }`
 - **THEN** it SHALL return `false` and the value SHALL narrow to `LegacyConversionSpec`
+
+#### Scenario: Nullish spec
+- **WHEN** `isMultiSheetConversionSpec` is called with `null` or `undefined` (for example the `conversionSpec` of a document type obtained from `list()`)
+- **THEN** it SHALL return `false` without throwing
+
+#### Scenario: Spec carrying both keys
+- **WHEN** `isMultiSheetConversionSpec` is called with an object holding both `sheets` and `columns` (which the API rejects with `400`, so it can only be constructed locally)
+- **THEN** it SHALL return `true`, honoring `sheets` rather than falling through to `columns`
 
 ### Requirement: DocumentTypeCreateParams interface
 The SDK SHALL export a `DocumentTypeCreateParams` interface with required properties `name` (string), `codeType` (string), `description` (string), `jsonSchema` (Record<string, unknown>), and optional properties `isDraft` (boolean), `promptHints` (string), `identifyPromptHints` (string), `conversionMode` (`ConversionMode`), `keepPropertyOrdering` (boolean), `isPublic` (boolean), and `conversionSpec` (`ConversionSpec | null`).
@@ -125,7 +135,9 @@ Provided parameters SHALL be sent to the API unchanged; omitted optional paramet
 ### Requirement: DocumentTypeUpdateParams interface
 The SDK SHALL export a `DocumentTypeUpdateParams` interface with optional properties `name` (string), `description` (string), `jsonSchema` (Record<string, unknown>), `isDraft` (boolean), `promptHints` (string), `identifyPromptHints` (string), `conversionMode` (`ConversionMode`), `keepPropertyOrdering` (boolean), `isPublic` (boolean), and `conversionSpec` (`ConversionSpec | null`). `codeType` MUST NOT be updatable.
 
-Omitting `conversionSpec` SHALL leave the stored spec unchanged; passing `null` SHALL clear it, so the result of a `get` can be fed back into `update` unchanged.
+Omitting `conversionSpec` SHALL leave the stored spec unchanged; passing `null` SHALL clear it.
+
+A `conversionSpec` of `undefined` MUST be dropped from the request body rather than serialized, so that forwarding a spec read from a `DocumentType` (`{ conversionSpec: docType.conversionSpec }`) round-trips safely whether or not the source carried the field. The SDK MUST NOT document or rely on `?? null` normalization for that forwarding: document types from `list()` have no `conversionSpec`, so it would convert "not loaded" into "clear the stored spec".
 
 #### Scenario: Update the conversion spec
 - **WHEN** update params include a valid `conversionSpec`
@@ -133,6 +145,10 @@ Omitting `conversionSpec` SHALL leave the stored spec unchanged; passing `null` 
 
 #### Scenario: Update leaves spec untouched
 - **WHEN** update params omit `conversionSpec`
+- **THEN** the request body SHALL NOT include a `conversionSpec` key and the stored spec SHALL remain unchanged
+
+#### Scenario: Forwarding an absent spec
+- **WHEN** update params set `conversionSpec` to the `conversionSpec` of a document type obtained from `list()`, which is `undefined`
 - **THEN** the request body SHALL NOT include a `conversionSpec` key and the stored spec SHALL remain unchanged
 
 #### Scenario: Clearing the conversion spec
