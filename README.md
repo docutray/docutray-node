@@ -98,6 +98,7 @@ DocuTrayError (base)
 │   └── APITimeoutError (request timeout)
 └── APIError (HTTP errors)
     ├── BadRequestError (400)
+    │   └── DSLValidationError (400, DSL rules that do not compile)
     ├── AuthenticationError (401)
     ├── PermissionDeniedError (403)
     ├── NotFoundError (404)
@@ -159,6 +160,8 @@ const result = await client.convert.run({
   documentTypeCode: 'invoice',
 });
 console.log(result.data);
+console.log(result.validation);      // see "Conversion validation" below
+console.log(result.field_locations); // only when the type has boundingBoxesEnabled
 
 // From URL
 const result = await client.convert.run({
@@ -179,6 +182,33 @@ if (final.isSuccess()) {
   console.log(final.data);
 }
 ```
+
+#### Conversion validation
+
+Successful conversions (`convert.run()`, `convert.getStatus()` with status
+`SUCCESS`, and the `CONVERSION_COMPLETED` webhook) carry a `validation` field of
+type `ConversionValidation`. Validation is informational: it never changes the
+conversion status.
+
+```typescript
+import { isValidationOutcome, isValidationSystemFailure } from 'docutray';
+
+const { validation } = await client.convert.run({ url, documentTypeCode: 'invoice' });
+
+if (isValidationOutcome(validation)) {
+  // Validation ran: { valid, errors: ValidationIssue[], warnings: ValidationIssue[] }
+  if (!validation.valid) console.log(validation.errors);
+} else if (isValidationSystemFailure(validation)) {
+  // { status: 'error' }: validation could not be completed. It does not mean the
+  // data is invalid; re-check later with documentTypes.validate().
+} else {
+  // null: skipped, the document type has no JSON Schema and no rules
+}
+```
+
+Webhook receivers can type the request body with `ConversionWebhookPayload`
+(the event type arrives in the `X-Docutray-Event` header). Step executions keep
+the summary format: `validation` is `{ errors: { count, messages }, warnings: { count, messages } }`.
 
 ### Identify
 
@@ -215,15 +245,78 @@ const page = await client.documentTypes.list({ search: 'invoice' });
 // Get a specific document type
 const docType = await client.documentTypes.get('dt_invoice');
 
-// Validate data against a document type schema
+// Validate data against a document type (JSON Schema + stored DSL rules)
 const validation = await client.documentTypes.validate('dt_invoice', {
   invoice_number: 'INV-001',
   total: 100.0,
 });
-if (validation.isValid()) {
+if (validation.valid) {
   console.log('Data is valid!');
 }
 ```
+
+#### Validation rules (DSL)
+
+A document type validates extracted data in two layers: its JSON Schema and
+optional business rules written in the
+[validation DSL](https://docs.docutray.com/docs/guides/validation), stored in
+`dslRules`. `get()`, `create()` and `update()` return `dslRules` (`null` when
+the type has no rules); `list()` does not include it.
+
+```typescript
+// Save rules (64 KiB UTF-8 maximum)
+await client.documentTypes.update('dt_invoice', {
+  dslRules: 'define expected sum field.subtotal field.tax\nfield.total equalsWithPrecision(calculated.expected, 2)',
+});
+
+// In update(), omitting dslRules keeps the stored rules; null or '' clears them
+await client.documentTypes.update('dt_invoice', { dslRules: null });
+```
+
+Test rules without saving them by passing `dslRules` to `validate()` (dry-run).
+The JSON Schema still runs; `null` or `''` tests without rules. Without
+`dslRules`, the stored rules run.
+
+```typescript
+const result = await client.documentTypes.validate(
+  'dt_invoice',
+  { subtotal: 1000, tax: 190, total: 1290 },
+  { dslRules: 'field.total lessThan(1000)' },
+);
+
+result.valid;          // false — authoritative; warnings never make it invalid
+result.issues;         // ValidationIssue[]: errors first, then warnings
+result.errors.count;   // summary kept for compatibility: { count, messages }
+for (const issue of result.issues ?? []) {
+  console.log(issue.field, issue.code, issue.source, issue.message);
+}
+```
+
+Each `ValidationIssue` has `field` (path such as `items[1].amount`; `''` is the
+document root), `code`, `message`, `severity` (`error` | `warning`), `source`
+(`schema` | `rule`) and, when available, `rule`, `value` and `details`. Issue
+messages are written in Spanish by the API.
+
+Rules that fail to compile throw a `DSLValidationError` (a `BadRequestError`)
+from `create()`, `update()` or a `validate()` dry-run, with the line and column
+of each problem. Nothing is saved.
+
+```typescript
+import { DSLValidationError } from 'docutray';
+
+try {
+  await client.documentTypes.update('dt_invoice', { dslRules: 'field.total greaterThen 0' });
+} catch (error) {
+  if (error instanceof DSLValidationError) {
+    for (const d of error.diagnostics) {
+      console.error(`line ${d.line}, column ${d.column}: ${d.message}`);
+    }
+  }
+}
+```
+
+> `validate()` takes the document data as its second argument. Earlier SDK
+> versions sent no body, which the API rejects.
 
 #### Conversion specs
 
@@ -440,9 +533,8 @@ const result: ConversionResult = await client.convert.run({
 });
 
 // Access typed attributes
-console.log(result.conversionId); // string
-console.log(result.data);         // Record<string, unknown>
-console.log(result.status);       // string
+console.log(result.data);       // Record<string, unknown>
+console.log(result.validation); // ConversionValidation | undefined
 ```
 
 ## Contributing

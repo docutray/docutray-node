@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `dslRules` on `DocumentType`, `DocumentTypeCreateParams` and `DocumentTypeUpdateParams`: DSL business rules validated against extracted data (docutray/docutray#1111). In `update()`, omitting the field keeps the stored rules and `null` or `''` clears them.
+- `documentTypes.validate(id, data, { dslRules })`: pass `dslRules` to test temporary rules without saving them (dry-run). `ValidationResult` now includes `valid` and `issues`, and keeps the `errors`/`warnings` summaries.
+- `DSLValidationError` (subclass of `BadRequestError`) with `diagnostics: DSLDiagnostic[]` (`line`, `column`, `message`), thrown when DSL rules fail to compile.
+- `validation: ConversionValidation` on `ConversionResult` and `ConversionStatus`, where `ConversionValidation = ValidationOutcome | ValidationSystemFailure | null`; type guards `isValidationOutcome()` and `isValidationSystemFailure()`.
+- New types `ValidationIssue`, `ValidationOutcome`, `ValidationSystemFailure`, `ValidationSummary`, `ValidationSeverity`, `ValidationIssueSource`, `DSLDiagnostic`.
+- `field_locations` (`FieldLocations`) on `ConversionResult` and `ConversionStatus`.
+- Webhook types `ConversionWebhookPayload` and `WebhookEventType`.
+- `promptHints`, `identifyPromptHints`, `keepPropertyOrdering` and `boundingBoxesEnabled` on `DocumentType`; `boundingBoxesEnabled` on create/update params.
+
+### Changed
+
+- **Breaking:** `documentTypes.validate()` takes the document data as its second argument (`validate(id, data, params?, options?)`). The previous signature sent no body, which the API rejects.
+- **Breaking (types only):** `convert.run()` returns `ConversionResult` (`{ data, validation, field_locations }`), the shape the API actually returns, instead of `ConversionStatus`.
+- `StepExecutionStatus.validation` is typed as `ValidationSummary` instead of `Record<string, unknown>` (same runtime shape).
+- `ValidationErrorInfo` and `ValidationWarningInfo` now live in the validation types module (still exported from the package root).
+- `isValidationValid()` uses `valid` when the API returns it.
+- API error messages fall back to the body's `error` field, so errors carry the API's message instead of `Request failed with status N`.
+
 ## [0.1.5] - 2026-08-11
 
 ### Added
