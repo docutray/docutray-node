@@ -155,9 +155,7 @@ export class APIClient {
         }
 
         const errorMessage =
-          (errorBody && typeof errorBody === 'object' && 'message' in errorBody
-            ? String((errorBody as Record<string, unknown>).message)
-            : undefined) ?? `Request failed with status ${response.status}`;
+          extractErrorMessage(errorBody) ?? `Request failed with status ${response.status}`;
 
         const apiError = APIError.generate(
           response.status,
@@ -278,4 +276,17 @@ export class APIClient {
   async delete<T>(path: string, options?: RequestOptions): Promise<T | RawResponse<T>> {
     return this.request<T>('DELETE', path, undefined, options);
   }
+}
+
+/**
+ * Reads the error message from an API error body: `message`, or the `error`
+ * string the DocuTray API uses.
+ *
+ * @internal
+ */
+function extractErrorMessage(body: unknown): string | undefined {
+  if (!body || typeof body !== 'object') return undefined;
+  const record = body as Record<string, unknown>;
+  if ('message' in record) return String(record.message);
+  return typeof record.error === 'string' ? record.error : undefined;
 }

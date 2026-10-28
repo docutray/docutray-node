@@ -1,3 +1,7 @@
+import type { ValidationErrorInfo, ValidationIssue, ValidationWarningInfo } from './validation.js';
+
+export type { ValidationErrorInfo, ValidationWarningInfo } from './validation.js';
+
 /**
  * Conversion mode used when extracting from a document type.
  */
@@ -88,36 +92,59 @@ export interface DocumentType {
    * return it on the single-document-type endpoints.
    */
   conversionSpec?: ConversionSpec | null;
+  /** Hints that guide the extraction prompt. Absent from list responses. */
+  promptHints?: string | null;
+  /** Hints that guide the identification prompt. Absent from list responses. */
+  identifyPromptHints?: string | null;
+  /** Whether extraction output preserves the schema's property order. Absent from list responses. */
+  keepPropertyOrdering?: boolean;
+  /**
+   * Whether conversions return `field_locations` (bounding boxes of each
+   * extracted field). Absent from list responses.
+   */
+  boundingBoxesEnabled?: boolean;
+  /**
+   * DSL business rules validated against the extracted data, or `null` when
+   * the type has no rules. Absent from list responses, which only return it on
+   * the single-document-type endpoints.
+   */
+  dslRules?: string | null;
 }
 
 /**
- * Validation error details.
- */
-export interface ValidationErrorInfo {
-  /** Number of errors found. */
-  count: number;
-  /** List of error messages. */
-  messages: string[];
-}
-
-/**
- * Validation warning details.
- */
-export interface ValidationWarningInfo {
-  /** Number of warnings found. */
-  count: number;
-  /** List of warning messages. */
-  messages: string[];
-}
-
-/**
- * Result of validating a document type schema.
+ * Result of validating a document against a document type with
+ * `documentTypes.validate()`.
  */
 export interface ValidationResult {
-  /** Validation errors that prevent the schema from being used. */
+  /**
+   * Whether the document conforms. Authoritative; warnings do not make it
+   * invalid. Absent on API deployments that predate the field.
+   */
+  valid?: boolean;
+  /**
+   * Structured errors followed by warnings. Absent on API deployments that
+   * predate the field.
+   */
+  issues?: ValidationIssue[];
+  /** Error summary. */
   errors: ValidationErrorInfo;
-  /** Validation warnings that may indicate potential issues. */
+  /** Warning summary. */
   warnings: ValidationWarningInfo;
+}
+
+/**
+ * Options for `documentTypes.validate()`.
+ */
+export interface DocumentTypeValidateParams {
+  /**
+   * Temporary DSL rules to test instead of the stored ones, without saving
+   * them (dry-run). The JSON Schema still runs. Pass `null` or `''` to test
+   * without DSL rules. Omit to validate with the stored rules.
+   *
+   * Limit: 64 KiB of UTF-8 text. Rules that fail to compile throw a
+   * `DSLValidationError`.
+   */
+  dslRules?: string | null;
 }
 
 /**
@@ -151,6 +178,14 @@ export interface DocumentTypeCreateParams {
    * structurally invalid spec is rejected by the API with a `BadRequestError`.
    */
   conversionSpec?: ConversionSpec | null;
+  /** Whether conversions return `field_locations` (bounding boxes of each extracted field). */
+  boundingBoxesEnabled?: boolean;
+  /**
+   * DSL business rules (64 KiB UTF-8 maximum). Omit, or pass `null` or `''`,
+   * to create the type without rules. Rules that fail to compile throw a
+   * `DSLValidationError`.
+   */
+  dslRules?: string | null;
 }
 
 /**
@@ -189,6 +224,19 @@ export interface DocumentTypeUpdateParams {
    * would turn "not loaded" into "clear the stored spec".
    */
   conversionSpec?: ConversionSpec | null;
+  /** Whether conversions return `field_locations` (bounding boxes of each extracted field). */
+  boundingBoxesEnabled?: boolean;
+  /**
+   * DSL business rules (64 KiB UTF-8 maximum). Omit to keep the stored rules,
+   * or pass `null` or `''` to clear them. Rules that fail to compile throw a
+   * `DSLValidationError` and nothing is saved.
+   *
+   * When omitted, the API re-checks the stored rules' syntax: if they no
+   * longer compile, the update fails until new rules are sent. As with
+   * `conversionSpec`, do not normalize a value read from `list()` with
+   * `?? null`, which would clear the stored rules.
+   */
+  dslRules?: string | null;
 }
 
 /**
@@ -204,10 +252,11 @@ export interface DocumentTypesListParams {
 }
 
 /**
- * Returns `true` if the validation result has no errors.
+ * Returns `true` if the document is valid. Uses `valid` when the API returns
+ * it, and falls back to `errors.count === 0` otherwise.
  */
 export function isValidationValid(result: ValidationResult): boolean {
-  return result.errors.count === 0;
+  return result.valid ?? result.errors.count === 0;
 }
 
 /**

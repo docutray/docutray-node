@@ -1,5 +1,6 @@
 import type { FileInput } from '../core/types.js';
 import type { ImageContentType } from './shared.js';
+import type { ConversionValidation } from './validation.js';
 
 /**
  * Possible statuses for a conversion operation.
@@ -7,11 +8,73 @@ import type { ImageContentType } from './shared.js';
 export type ConversionStatusType = 'ENQUEUED' | 'PROCESSING' | 'SUCCESS' | 'ERROR';
 
 /**
- * Extracted data from a successful conversion.
+ * Real dimensions of a page in the source document.
+ */
+export interface FieldLocationsPage {
+  /** 1-based page number. */
+  page: number;
+  /** Page width. */
+  width: number;
+  /** Page height. */
+  height: number;
+  /** Unit of `width` and `height`. */
+  unit: 'pt';
+}
+
+/**
+ * Bounding box of a printed value, as floats in `0..1` relative to its page,
+ * with the origin at the top-left corner.
+ */
+export interface FieldLocationBox {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/**
+ * Location of one extracted leaf field in the source document.
+ */
+export interface FieldLocation {
+  /** Restricted JSONPath of the field inside `data` (e.g. `$.items[0].total`). */
+  path: string;
+  /** 1-based page the value appears on. */
+  page: number;
+  /** Bounding box of the value on that page. */
+  box: FieldLocationBox;
+  /** Reserved, always `null`. */
+  confidence: number | null;
+}
+
+/**
+ * Location of each extracted leaf field in the source document.
+ *
+ * Present only when the document type has `boundingBoxesEnabled`. Best-effort:
+ * fields that could not be located are absent from `fields`.
+ */
+export interface FieldLocations {
+  /** Boxes are relative to the page they belong to. */
+  coordinate_space: 'page-relative';
+  /** Real page dimensions. Empty for non-PDF documents. */
+  pages: FieldLocationsPage[];
+  /** Located fields. */
+  fields: FieldLocation[];
+}
+
+/**
+ * Result of a synchronous conversion (`convert.run()`).
  */
 export interface ConversionResult {
   /** The structured data extracted from the document. */
   data: Record<string, unknown>;
+  /**
+   * Validation of the extracted data against the document type's JSON Schema
+   * and DSL rules. Informational: it never changes the conversion outcome.
+   * Absent on API deployments that predate the field.
+   */
+  validation?: ConversionValidation;
+  /** Location of each extracted field. Present only when the document type has `boundingBoxesEnabled`. */
+  field_locations?: FieldLocations;
 }
 
 /**
@@ -38,6 +101,13 @@ export interface ConversionStatus {
   error: string | null;
   /** Additional metadata attached to the document. */
   document_metadata?: Record<string, unknown> | null;
+  /**
+   * Validation of the extracted data (present when `status` is `SUCCESS`).
+   * Informational: it never changes the conversion status.
+   */
+  validation?: ConversionValidation;
+  /** Location of each extracted field. Present only when the document type has `boundingBoxesEnabled`. */
+  field_locations?: FieldLocations;
 }
 
 /**
