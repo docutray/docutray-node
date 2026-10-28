@@ -46,7 +46,7 @@ const outcome: ConversionValidation = {
 };
 
 function createClient(): APIClient {
-  return new APIClient({ apiKey: 'test-key', baseUrl: TEST_BASE_URL, maxRetries: 0 });
+  return new APIClient({ apiKey: 'test-key', baseURL: TEST_BASE_URL, maxRetries: 0 });
 }
 
 describe('dslRules on document types', () => {
