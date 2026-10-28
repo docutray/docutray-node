@@ -155,6 +155,19 @@ describe('APIClient', () => {
 
       await expect(client.get('/test')).rejects.toThrow('Field X is required');
     });
+
+    it('falls back to the error field of the response body', async () => {
+      mockFetch = createMockFetch([
+        { status: 404, body: { error: 'Document type not found' } },
+      ]);
+      client = new APIClient({
+        apiKey: 'key',
+        maxRetries: 0,
+        fetch: mockFetch as unknown as typeof globalThis.fetch,
+      });
+
+      await expect(client.get('/test')).rejects.toThrow('Document type not found');
+    });
   });
 
   describe('retry behavior', () => {
