@@ -1,5 +1,6 @@
 import { APIResource } from '../resource.js';
 import type { APIClient } from '../core/api-client.js';
+import { DocuTrayError } from '../core/error.js';
 import { Page } from '../core/pagination.js';
 import type { PageResponse } from '../core/pagination.js';
 import type { DocumentType, DocumentTypeCreateParams, DocumentTypeUpdateParams, DocumentTypeValidateParams, DocumentTypesListParams, ValidationResult } from '../types/document-type.js';
@@ -113,6 +114,7 @@ export class DocumentTypes extends APIResource {
    * @param params - Optional temporary DSL rules.
    * @param options - Per-request options.
    * @returns The validation result with `valid`, `issues` and the error/warning summaries.
+   * @throws {DocuTrayError} When `data` is `undefined`, before any request is sent.
    * @throws {DSLValidationError} When `dslRules` fails to compile.
    *
    * @example
@@ -203,8 +205,14 @@ class DocumentTypesWithRawResponse {
  * Builds the validate request body: the `{ data, dslRules }` dry-run envelope
  * when `dslRules` is given (including `null`), otherwise the data itself.
  *
+ * `undefined` data is rejected: JSON serialization would drop it, sending no
+ * body or a `{ dslRules }` document that the API validates as data.
+ *
  * @internal
  */
 function validateBody(data: unknown, params?: DocumentTypeValidateParams): unknown {
+  if (data === undefined) {
+    throw new DocuTrayError('Must provide data to validate');
+  }
   return params?.dslRules !== undefined ? { data, dslRules: params.dslRules } : data;
 }

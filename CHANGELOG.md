@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `dslRules` on `DocumentType`, `DocumentTypeCreateParams` and `DocumentTypeUpdateParams`: DSL business rules validated against extracted data (docutray/docutray#1111). In `update()`, omitting the field keeps the stored rules and `null` or `''` clears them.
-- `documentTypes.validate(id, data, { dslRules })`: pass `dslRules` to test temporary rules without saving them (dry-run). `ValidationResult` now includes `valid` and `issues`, and keeps the `errors`/`warnings` summaries.
+- `documentTypes.validate(id, data, { dslRules })`: pass `dslRules` to test temporary rules without saving them (dry-run). `ValidationResult` now includes `valid` and `issues`, and keeps the `errors`/`warnings` summaries. `undefined` data throws a `DocuTrayError` before any request is sent.
 - `DSLValidationError` (subclass of `BadRequestError`) with `diagnostics: DSLDiagnostic[]` (`line`, `column`, `message`), thrown when DSL rules fail to compile.
 - `validation: ConversionValidation` on `ConversionResult` and `ConversionStatus`, where `ConversionValidation = ValidationOutcome | ValidationSystemFailure | null`; type guards `isValidationOutcome()` and `isValidationSystemFailure()`.
 - New types `ValidationIssue`, `ValidationOutcome`, `ValidationSystemFailure`, `ValidationSummary`, `ValidationSeverity`, `ValidationIssueSource`, `DSLDiagnostic`.

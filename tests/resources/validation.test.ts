@@ -4,7 +4,7 @@ import { DocumentTypes } from '../../src/resources/document-types.js';
 import { Convert } from '../../src/resources/convert.js';
 import { Steps } from '../../src/resources/steps.js';
 import { APIClient } from '../../src/core/api-client.js';
-import { BadRequestError, DSLValidationError } from '../../src/core/error.js';
+import { BadRequestError, DocuTrayError, DSLValidationError } from '../../src/core/error.js';
 import { isValidationValid } from '../../src/types/document-type.js';
 import type { DocumentType, ValidationResult } from '../../src/types/document-type.js';
 import type { ConversionResult, ConversionStatus } from '../../src/types/convert.js';
@@ -198,6 +198,32 @@ describe('documentTypes.validate()', () => {
 
     expect(raw.statusCode).toBe(200);
     expect(capture.body()).toEqual({ data: { total: 5 }, dslRules: rules });
+  });
+
+  it.each([
+    ['without dslRules', undefined],
+    ['with dslRules', { dslRules: rules }],
+  ])('rejects undefined data %s before sending a request', async (_label, params) => {
+    let requested = false;
+    server.use(
+      http.post(`${TEST_BASE_URL}/api/document-types/dt-789/validate`, () => {
+        requested = true;
+        return HttpResponse.json(dryRunResult);
+      }),
+    );
+    const dt = new DocumentTypes(createClient());
+
+    await expect(dt.validate('dt-789', undefined, params)).rejects.toThrow(DocuTrayError);
+    await expect(dt.withRawResponse.validate('dt-789', undefined, params)).rejects.toThrow('Must provide data to validate');
+    expect(requested).toBe(false);
+  });
+
+  it('accepts null data, sent as-is', async () => {
+    const capture = captureValidate();
+
+    await new DocumentTypes(createClient()).validate('dt-789', null, { dslRules: rules });
+
+    expect(capture.body()).toEqual({ data: null, dslRules: rules });
   });
 
   it('isValidationValid() uses valid, falling back to errors.count', () => {
