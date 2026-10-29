@@ -219,11 +219,13 @@ const result = await client.identify.run({
   file: readFileSync('unknown_document.pdf'),
 });
 
-console.log(`Identified as: ${result.documentType.name}`);
-console.log(`Confidence: ${(result.documentType.confidence * 100).toFixed(1)}%`);
+if (result.document_type) {
+  console.log(`Identified as: ${result.document_type.name} (${result.document_type.code})`);
+  console.log(`Confidence: ${(result.document_type.confidence * 100).toFixed(1)}%`);
+}
 
 // View alternatives
-for (const alt of result.alternatives) {
+for (const alt of result.alternatives ?? []) {
   console.log(`  Alternative: ${alt.name} (${(alt.confidence * 100).toFixed(1)}%)`);
 }
 ```
@@ -431,7 +433,8 @@ Manage document collections with semantic search capabilities.
 
 ```typescript
 // List knowledge bases
-for await (const kb of client.knowledgeBases.list().autoPagingIter()) {
+const kbPage = await client.knowledgeBases.list();
+for await (const kb of kbPage.autoPagingIter()) {
   console.log(`${kb.name}: ${kb.documentCount} documents`);
 }
 
@@ -469,20 +472,24 @@ await client.knowledgeBases.delete(kb.id);
 Resources that return lists support pagination:
 
 ```typescript
-// Get the first page
-const page = await client.documentTypes.list({ limit: 10 });
+// Get the first page (list() returns a Promise<Page<T>>)
+const firstPage = await client.documentTypes.list({ limit: 10 });
+console.log(firstPage.data.length, firstPage.hasNextPage());
 
-// Iterate through all pages
-for await (const page of client.documentTypes.list().iterPages()) {
+// Iterate through all pages, starting from this one
+for await (const page of firstPage.iterPages()) {
   for (const docType of page.data) {
     console.log(docType.name);
   }
 }
 
-// Auto-iterate through all items
-for await (const docType of client.documentTypes.list().autoPagingIter()) {
+// Auto-iterate through all items across pages
+for await (const docType of firstPage.autoPagingIter()) {
   console.log(docType.name);
 }
+
+// Or collect items into an array, up to a limit
+const all = await firstPage.toArray({ limit: 100 });
 ```
 
 ## Raw Response Access
@@ -497,10 +504,10 @@ const response = await client.convert.withRawResponse.run({
 
 console.log(`Status: ${response.statusCode}`);
 console.log(`Headers:`, response.headers);
-console.log(`Request ID: ${response.headers['x-request-id']}`);
+console.log(`Request ID: ${response.headers.get('x-request-id')}`); // headers is a fetch Headers object
 
-// Parse the response body
-const result = response.parse();
+// Parse the response body (async, cached after the first call)
+const result = await response.parse();
 console.log(result.data);
 ```
 
