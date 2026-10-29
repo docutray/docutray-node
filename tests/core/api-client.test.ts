@@ -11,7 +11,7 @@ import { VERSION } from '../../src/lib/version.js';
 
 function createMockFetch(responses: Array<{ status: number; body: unknown; headers?: Record<string, string> }>) {
   let callIndex = 0;
-  return vi.fn(async (): Promise<Response> => {
+  return vi.fn(async (_input: string | URL | Request, _init?: RequestInit): Promise<Response> => {
     const config = responses[callIndex] ?? responses[responses.length - 1];
     callIndex++;
     return new Response(JSON.stringify(config.body), {
