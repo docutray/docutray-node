@@ -11,81 +11,91 @@ import {
   mockSyncResult,
 } from '../helpers/fixtures.js';
 
-function createKnowledgeBases(): KnowledgeBases {
+// The API wraps single resources in `{ data }`; create and delete also put a
+// `statusCode` field in the body (the HTTP status is 200).
+const { _count: _ignored, ...mockKnowledgeBaseWithoutCount } = mockKnowledgeBase;
+const kbBase = `${TEST_BASE_URL}/api/knowledge-bases`;
+const docsBase = `${kbBase}/kb1/documents`;
+
+function createKB(): KnowledgeBases {
   const client = new APIClient({ apiKey: 'test-key', baseURL: TEST_BASE_URL });
   return new KnowledgeBases(client);
 }
 
+function captureBody(method: 'post' | 'put', url: string, response: Record<string, unknown>) {
+  const captured: { body?: Record<string, unknown>; url?: URL } = {};
+  server.use(
+    http[method](url, async ({ request }) => {
+      captured.url = new URL(request.url);
+      captured.body = await request.json() as Record<string, unknown>;
+      return HttpResponse.json(response);
+    }),
+  );
+  return captured;
+}
+
 describe('KnowledgeBases', () => {
   describe('list()', () => {
-    it('returns a Page of knowledge bases', async () => {
+    it('returns a Page of knowledge bases and sends the filters', async () => {
+      let url: URL | undefined;
       server.use(
-        http.get(`${TEST_BASE_URL}/api/knowledge-bases`, () => {
-          return HttpResponse.json({
-            data: [mockKnowledgeBase],
-            pagination: { total: 1, page: 1, limit: 10 },
-          });
+        http.get(kbBase, ({ request }) => {
+          url = new URL(request.url);
+          return HttpResponse.json({ data: [mockKnowledgeBase], pagination: { total: 1, page: 1, limit: 20 } });
         }),
       );
 
-      const kb = createKnowledgeBases();
-      const page = await kb.list();
+      const page = await createKB().list({ search: 'invoices', isActive: false, limit: 20 });
 
       expect(page.data).toHaveLength(1);
-      expect(page.data[0].id).toBe('kb-1');
+      expect(page.data[0].name).toBe('Test KB');
+      expect(page.data[0]._count?.documents).toBe(10);
       expect(page.hasNextPage()).toBe(false);
+      expect(url?.searchParams.get('search')).toBe('invoices');
+      expect(url?.searchParams.get('isActive')).toBe('false');
     });
   });
 
   describe('get()', () => {
-    it('fetches a knowledge base by id', async () => {
-      server.use(
-        http.get(`${TEST_BASE_URL}/api/knowledge-bases/kb-1`, () => {
-          return HttpResponse.json(mockKnowledgeBase);
-        }),
-      );
+    it('unwraps the data envelope', async () => {
+      server.use(http.get(`${kbBase}/kb1`, () => HttpResponse.json({ data: mockKnowledgeBase })));
 
-      const kb = createKnowledgeBases();
-      const result = await kb.get('kb-1');
-      expect(result.id).toBe('kb-1');
+      const result = await createKB().get('kb1');
+
+      expect(result.id).toBe('kb1');
       expect(result.name).toBe('Test KB');
     });
   });
 
   describe('create()', () => {
-    it('creates a knowledge base', async () => {
-      let receivedBody: Record<string, unknown> = {};
-      server.use(
-        http.post(`${TEST_BASE_URL}/api/knowledge-bases`, async ({ request }) => {
-          receivedBody = await request.json() as Record<string, unknown>;
-          return HttpResponse.json(mockKnowledgeBase);
-        }),
-      );
+    it('sends name, description, schema and indexingPreferences and unwraps the envelope', async () => {
+      const captured = captureBody('post', kbBase, { data: mockKnowledgeBaseWithoutCount, statusCode: 201 });
 
-      const kb = createKnowledgeBases();
-      const result = await kb.create({ name: 'My KB', description: 'Test' });
+      const result = await createKB().create({
+        name: 'Test KB',
+        description: 'Test knowledge base',
+        schema: { type: 'object' },
+        indexingPreferences: { language: 'es' },
+      });
 
-      expect(result.id).toBe('kb-1');
-      expect(receivedBody.name).toBe('My KB');
-      expect(receivedBody.description).toBe('Test');
+      expect(result).toEqual(mockKnowledgeBaseWithoutCount);
+      expect(captured.body).toEqual({
+        name: 'Test KB',
+        description: 'Test knowledge base',
+        schema: { type: 'object' },
+        indexingPreferences: { language: 'es' },
+      });
     });
   });
 
   describe('update()', () => {
-    it('updates a knowledge base', async () => {
-      let receivedBody: Record<string, unknown> = {};
-      server.use(
-        http.put(`${TEST_BASE_URL}/api/knowledge-bases/kb-1`, async ({ request }) => {
-          receivedBody = await request.json() as Record<string, unknown>;
-          return HttpResponse.json({ ...mockKnowledgeBase, name: 'Updated' });
-        }),
-      );
+    it('unwraps the data envelope', async () => {
+      const captured = captureBody('put', `${kbBase}/kb1`, { data: { ...mockKnowledgeBaseWithoutCount, name: 'Updated' } });
 
-      const kb = createKnowledgeBases();
-      const result = await kb.update('kb-1', { name: 'Updated' });
+      const result = await createKB().update('kb1', { name: 'Updated', isActive: true });
 
       expect(result.name).toBe('Updated');
-      expect(receivedBody.name).toBe('Updated');
+      expect(captured.body).toEqual({ name: 'Updated', isActive: true });
     });
   });
 
@@ -93,153 +103,160 @@ describe('KnowledgeBases', () => {
     it('deletes a knowledge base', async () => {
       let deleteCalled = false;
       server.use(
-        http.delete(`${TEST_BASE_URL}/api/knowledge-bases/kb-1`, () => {
+        http.delete(`${kbBase}/kb1`, () => {
           deleteCalled = true;
-          return new HttpResponse(null, { status: 204 });
+          return HttpResponse.json({ data: null, statusCode: 204 });
         }),
       );
 
-      const kb = createKnowledgeBases();
-      await kb.delete('kb-1');
+      await expect(createKB().delete('kb1')).resolves.toBeUndefined();
       expect(deleteCalled).toBe(true);
     });
   });
 
   describe('search()', () => {
-    it('searches a knowledge base', async () => {
-      let receivedBody: Record<string, unknown> = {};
-      server.use(
-        http.post(`${TEST_BASE_URL}/api/knowledge-bases/kb-1/search`, async ({ request }) => {
-          receivedBody = await request.json() as Record<string, unknown>;
-          return HttpResponse.json(mockSearchResult);
-        }),
-      );
+    it('sends the search options and returns the result', async () => {
+      const captured = captureBody('post', `${kbBase}/kb1/search`, mockSearchResult as unknown as Record<string, unknown>);
 
-      const kb = createKnowledgeBases();
-      const result = await kb.search('kb-1', { query: 'invoices' });
+      const result = await createKB().search('kb1', {
+        query: 'invoices',
+        limit: 5,
+        similarityThreshold: 0.5,
+        includeMetadata: false,
+      });
 
       expect(result.resultsCount).toBe(1);
-      expect(receivedBody.query).toBe('invoices');
+      expect(result.data[0].document.documentId).toBe('doc-ext-1');
+      expect(captured.body).toEqual({ query: 'invoices', limit: 5, similarityThreshold: 0.5, includeMetadata: false });
     });
   });
 
   describe('sync()', () => {
-    it('syncs a knowledge base', async () => {
-      server.use(
-        http.post(`${TEST_BASE_URL}/api/knowledge-bases/kb-1/sync`, () => {
-          return HttpResponse.json(mockSyncResult);
-        }),
-      );
+    it('sends the options and unwraps the envelope', async () => {
+      const captured = captureBody('post', `${kbBase}/kb1/sync`, { data: mockSyncResult });
 
-      const kb = createKnowledgeBases();
-      const result = await kb.sync('kb-1');
+      const result = await createKB().sync('kb1', { force: true });
+
       expect(result.status).toBe('completed');
-      expect(result.documentsProcessed).toBe(5);
+      expect(result.embeddingsGenerated).toBe(5);
+      expect(captured.body).toEqual({ force: true });
+    });
+
+    it('sends an empty body without options', async () => {
+      const captured = captureBody('post', `${kbBase}/kb1/sync`, { data: mockSyncResult });
+
+      await createKB().sync('kb1');
+
+      expect(captured.body).toEqual({});
     });
   });
 
   describe('documents()', () => {
     describe('list()', () => {
-      it('lists documents in a knowledge base', async () => {
+      it('lists documents and sends the filters', async () => {
+        let url: URL | undefined;
         server.use(
-          http.get(`${TEST_BASE_URL}/api/knowledge-bases/kb-1/documents`, () => {
-            return HttpResponse.json({
-              data: [mockKBDocument],
-              pagination: { total: 1, page: 1, limit: 10 },
-            });
+          http.get(docsBase, ({ request }) => {
+            url = new URL(request.url);
+            const { embeddingStatus: _status, ...listed } = mockKBDocument;
+            return HttpResponse.json({ data: [listed], pagination: { total: 1, page: 1, limit: 20 } });
           }),
         );
 
-        const kb = createKnowledgeBases();
-        const page = await kb.documents('kb-1').list();
+        const page = await createKB().documents('kb1').list({ search: 'invoice', documentId: 'doc-ext' });
 
         expect(page.data).toHaveLength(1);
-        expect(page.data[0].id).toBe('doc-1');
+        expect(page.data[0].documentId).toBe('doc-ext-1');
+        expect(url?.searchParams.get('search')).toBe('invoice');
+        expect(url?.searchParams.get('documentId')).toBe('doc-ext');
       });
     });
 
     describe('get()', () => {
-      it('gets a document by id', async () => {
+      it('gets a document by its documentId and unwraps the envelope', async () => {
         server.use(
-          http.get(`${TEST_BASE_URL}/api/knowledge-bases/kb-1/documents/doc-1`, () => {
-            return HttpResponse.json(mockKBDocument);
-          }),
+          http.get(`${docsBase}/doc-ext-1`, () => HttpResponse.json({ data: { ...mockKBDocument, hasEmbedding: false } })),
         );
 
-        const kb = createKnowledgeBases();
-        const result = await kb.documents('kb-1').get('doc-1');
-        expect(result.id).toBe('doc-1');
+        const result = await createKB().documents('kb1').get('doc-ext-1');
+
+        expect(result.id).toBe('cmdoc1');
+        expect(result.documentId).toBe('doc-ext-1');
+        expect(result.content).toEqual({ title: 'Test Document' });
       });
     });
 
     describe('create()', () => {
-      it('creates a document', async () => {
-        let receivedBody: Record<string, unknown> = {};
-        server.use(
-          http.post(`${TEST_BASE_URL}/api/knowledge-bases/kb-1/documents`, async ({ request }) => {
-            receivedBody = await request.json() as Record<string, unknown>;
-            return HttpResponse.json(mockKBDocument);
-          }),
-        );
+      it('sends documentId and generateEmbedding and unwraps the envelope', async () => {
+        const captured = captureBody('post', docsBase, { data: mockKBDocument, statusCode: 201 });
 
-        const kb = createKnowledgeBases();
-        const result = await kb.documents('kb-1').create({
-          content: { title: 'New Doc' },
+        const result = await createKB().documents('kb1').create({
+          documentId: 'doc-ext-1',
+          content: { title: 'Test Document' },
+          metadata: { source: 'upload' },
+          generateEmbedding: false,
         });
 
-        expect(result.id).toBe('doc-1');
-        expect(receivedBody.content).toEqual({ title: 'New Doc' });
+        expect(result).toEqual(mockKBDocument);
+        expect(captured.body).toEqual({
+          documentId: 'doc-ext-1',
+          content: { title: 'Test Document' },
+          metadata: { source: 'upload' },
+          generateEmbedding: false,
+        });
       });
     });
 
     describe('update()', () => {
-      it('updates a document', async () => {
-        server.use(
-          http.put(`${TEST_BASE_URL}/api/knowledge-bases/kb-1/documents/doc-1`, () => {
-            return HttpResponse.json(mockKBDocument);
-          }),
-        );
+      it('sends regenerateEmbedding and unwraps the envelope', async () => {
+        const captured = captureBody('put', `${docsBase}/doc-ext-1`, { data: { ...mockKBDocument, hasEmbedding: false } });
 
-        const kb = createKnowledgeBases();
-        const result = await kb.documents('kb-1').update('doc-1', {
-          content: { title: 'Updated' },
-        });
+        const result = await createKB().documents('kb1').update('doc-ext-1', { regenerateEmbedding: true });
 
-        expect(result.id).toBe('doc-1');
+        expect(result.documentId).toBe('doc-ext-1');
+        expect(captured.body).toEqual({ regenerateEmbedding: true });
       });
     });
 
     describe('delete()', () => {
-      it('deletes a document', async () => {
+      it('deletes a document by its documentId', async () => {
         let deleteCalled = false;
         server.use(
-          http.delete(`${TEST_BASE_URL}/api/knowledge-bases/kb-1/documents/doc-1`, () => {
+          http.delete(`${docsBase}/doc-ext-1`, () => {
             deleteCalled = true;
-            return new HttpResponse(null, { status: 204 });
+            return HttpResponse.json({ data: null, statusCode: 204 });
           }),
         );
 
-        const kb = createKnowledgeBases();
-        await kb.documents('kb-1').delete('doc-1');
+        await createKB().documents('kb1').delete('doc-ext-1');
+
         expect(deleteCalled).toBe(true);
       });
     });
 
-    describe('withRawResponse', () => {
-      it('returns RawResponse for documents list()', async () => {
-        server.use(
-          http.get(`${TEST_BASE_URL}/api/knowledge-bases/kb-1/documents`, () => {
-            return HttpResponse.json({
-              data: [mockKBDocument],
-              pagination: { total: 1, page: 1, limit: 10 },
-            });
-          }),
-        );
+    it('encodes ids in the path', async () => {
+      let path = '';
+      server.use(
+        http.get(`${kbBase}/:kb/documents/:doc`, ({ request }) => {
+          path = new URL(request.url).pathname;
+          return HttpResponse.json({ data: mockKBDocument });
+        }),
+      );
 
-        const kb = createKnowledgeBases();
-        const raw = await kb.documents('kb-1').withRawResponse.list();
+      await createKB().documents('kb1').get('a b');
+
+      expect(path).toBe('/api/knowledge-bases/kb1/documents/a%20b');
+    });
+
+    describe('withRawResponse', () => {
+      it('returns the envelope for documents get()', async () => {
+        server.use(http.get(`${docsBase}/doc-ext-1`, () => HttpResponse.json({ data: mockKBDocument })));
+
+        const raw = await createKB().documents('kb1').withRawResponse.get('doc-ext-1');
+
         expect(raw).toBeInstanceOf(RawResponse);
         expect(raw.statusCode).toBe(200);
+        expect((await raw.parse()).data.documentId).toBe('doc-ext-1');
       });
     });
   });
@@ -247,42 +264,29 @@ describe('KnowledgeBases', () => {
   describe('withRawResponse', () => {
     it('returns RawResponse for list()', async () => {
       server.use(
-        http.get(`${TEST_BASE_URL}/api/knowledge-bases`, () => {
-          return HttpResponse.json({
-            data: [mockKnowledgeBase],
-            pagination: { total: 1, page: 1, limit: 10 },
-          });
-        }),
+        http.get(kbBase, () => HttpResponse.json({ data: [mockKnowledgeBase], pagination: { total: 1, page: 1, limit: 20 } })),
       );
 
-      const kb = createKnowledgeBases();
-      const raw = await kb.withRawResponse.list();
+      const raw = await createKB().withRawResponse.list();
+
       expect(raw).toBeInstanceOf(RawResponse);
       expect(raw.statusCode).toBe(200);
     });
 
-    it('returns RawResponse for get()', async () => {
-      server.use(
-        http.get(`${TEST_BASE_URL}/api/knowledge-bases/kb-1`, () => {
-          return HttpResponse.json(mockKnowledgeBase);
-        }),
-      );
+    it('returns the envelope for get()', async () => {
+      server.use(http.get(`${kbBase}/kb1`, () => HttpResponse.json({ data: mockKnowledgeBase })));
 
-      const kb = createKnowledgeBases();
-      const raw = await kb.withRawResponse.get('kb-1');
-      expect(raw).toBeInstanceOf(RawResponse);
+      const raw = await createKB().withRawResponse.get('kb1');
+
       expect(raw.statusCode).toBe(200);
+      expect((await raw.parse()).data.name).toBe('Test KB');
     });
 
     it('returns RawResponse for search()', async () => {
-      server.use(
-        http.post(`${TEST_BASE_URL}/api/knowledge-bases/kb-1/search`, () => {
-          return HttpResponse.json(mockSearchResult);
-        }),
-      );
+      server.use(http.post(`${kbBase}/kb1/search`, () => HttpResponse.json(mockSearchResult)));
 
-      const kb = createKnowledgeBases();
-      const raw = await kb.withRawResponse.search('kb-1', { query: 'test' });
+      const raw = await createKB().withRawResponse.search('kb1', { query: 'test' });
+
       expect(raw).toBeInstanceOf(RawResponse);
       expect(raw.statusCode).toBe(200);
     });

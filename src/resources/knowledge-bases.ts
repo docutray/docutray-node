@@ -15,12 +15,14 @@ import type {
  * Parameters for creating a new knowledge base.
  */
 export interface KnowledgeBaseCreateParams {
-  /** The name of the knowledge base. */
+  /** Name (1–100 characters: letters, digits, spaces, `-` and `_`). Unique among active knowledge bases. */
   name: string;
-  /** Optional description. */
-  description?: string;
-  /** Optional schema definition for document structure. */
-  schema?: Record<string, unknown>;
+  /** Description (1–500 characters). */
+  description: string;
+  /** JSON Schema describing the content of its documents. */
+  schema: Record<string, unknown>;
+  /** Indexing preferences used to build embeddings. Defaults to `{}`. */
+  indexingPreferences?: Record<string, unknown>;
 }
 
 /**
@@ -29,11 +31,13 @@ export interface KnowledgeBaseCreateParams {
 export interface KnowledgeBaseUpdateParams {
   /** Updated name. */
   name?: string;
-  /** Updated description. */
+  /** Updated description (1–500 characters). */
   description?: string;
   /** Updated schema. */
   schema?: Record<string, unknown>;
-  /** Whether the knowledge base is active. */
+  /** Updated indexing preferences. */
+  indexingPreferences?: Record<string, unknown>;
+  /** Whether the knowledge base is active. `true` restores a deleted knowledge base. */
   isActive?: boolean;
 }
 
@@ -41,10 +45,14 @@ export interface KnowledgeBaseUpdateParams {
  * Parameters for searching a knowledge base.
  */
 export interface KnowledgeBaseSearchParams {
-  /** The search query text. */
+  /** The search query text (1–1000 characters). */
   query: string;
-  /** Maximum number of results to return. */
+  /** Maximum number of results (1–50). Defaults to `10`. */
   limit?: number;
+  /** Minimum similarity, between 0 and 1. Defaults to `0.7`. */
+  similarityThreshold?: number;
+  /** Whether to return each document's metadata. Defaults to `true`. */
+  includeMetadata?: boolean;
 }
 
 /**
@@ -53,28 +61,52 @@ export interface KnowledgeBaseSearchParams {
 export interface KnowledgeBaseListParams {
   /** Page number (1-based). */
   page?: number;
-  /** Maximum items per page. */
+  /** Maximum items per page (1–100). */
   limit?: number;
+  /** Case-insensitive match on name or description. */
+  search?: string;
+  /** `false` lists deleted knowledge bases. Defaults to `true`. */
+  isActive?: boolean;
+}
+
+/**
+ * Parameters for synchronizing a knowledge base's embeddings.
+ */
+export interface KnowledgeBaseSyncParams {
+  /** Regenerate embeddings even for documents that already have one. */
+  force?: boolean;
+  /** Regenerate every document's embedding. */
+  regenerateEmbeddings?: boolean;
 }
 
 /**
  * Parameters for creating a document in a knowledge base.
  */
 export interface KBDocumentCreateParams {
-  /** The document content. */
+  /**
+   * Your identifier for the document (1–100 characters: letters, digits, `-`
+   * and `_`), unique within the knowledge base. Use it with `get`, `update`
+   * and `delete`.
+   */
+  documentId: string;
+  /** The document content (at least one field). */
   content: Record<string, unknown>;
   /** Optional metadata to associate with the document. */
   metadata?: Record<string, unknown>;
+  /** Whether to generate the embedding now. Defaults to `true`. */
+  generateEmbedding?: boolean;
 }
 
 /**
  * Parameters for updating a document in a knowledge base.
  */
 export interface KBDocumentUpdateParams {
-  /** Updated document content. */
+  /** Updated document content. Changing it regenerates the embedding. */
   content?: Record<string, unknown>;
   /** Updated metadata. */
   metadata?: Record<string, unknown>;
+  /** Regenerate the embedding even when `content` does not change. */
+  regenerateEmbedding?: boolean;
 }
 
 /**
@@ -83,8 +115,21 @@ export interface KBDocumentUpdateParams {
 export interface KBDocumentListParams {
   /** Page number (1-based). */
   page?: number;
-  /** Maximum items per page. */
+  /** Maximum items per page (1–100). */
   limit?: number;
+  /** Case-insensitive match on `documentId`. */
+  search?: string;
+  /** Case-insensitive match on `documentId`. */
+  documentId?: string;
+}
+
+/**
+ * Body of the single-resource knowledge base endpoints, which wrap the result
+ * in a `data` envelope. The regular methods unwrap it; `withRawResponse`
+ * returns it as is.
+ */
+export interface KnowledgeBaseEnvelope<T> {
+  data: T;
 }
 
 /**
@@ -98,20 +143,20 @@ export interface KBDocumentListParams {
  * const page = await client.knowledgeBases.list();
  *
  * // Search a knowledge base
- * const results = await client.knowledgeBases.search('kb_abc123', {
+ * const results = await client.knowledgeBases.search(knowledgeBaseId, {
  *   query: 'invoice total amount',
  * });
  *
  * // Manage documents
- * const docs = client.knowledgeBases.documents('kb_abc123');
- * const doc = await docs.create({ content: { title: 'Test' } });
+ * const docs = client.knowledgeBases.documents(knowledgeBaseId);
+ * const doc = await docs.create({ documentId: 'invoice-001', content: { title: 'Test' } });
  * ```
  */
 export class KnowledgeBases extends APIResource {
   /**
-   * Lists knowledge bases with optional pagination.
+   * Lists knowledge bases with optional pagination and filters.
    *
-   * @param params - Optional pagination parameters.
+   * @param params - Optional pagination and filter parameters.
    * @param options - Per-request options.
    * @returns A paginated list of knowledge bases.
    */
@@ -130,16 +175,18 @@ export class KnowledgeBases extends APIResource {
   }
 
   /**
-   * Retrieves a single knowledge base by ID.
+   * Retrieves a single active knowledge base by ID.
    *
    * @param id - The knowledge base identifier.
    * @param options - Per-request options.
+   * @returns The knowledge base, including its document count.
    */
   async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBase> {
-    return this._client.get<KnowledgeBase>(
-      `/api/knowledge-bases/${id}`,
+    const response = await this._client.get<KnowledgeBaseEnvelope<KnowledgeBase>>(
+      `/api/knowledge-bases/${encodeURIComponent(id)}`,
       options,
-    ) as Promise<KnowledgeBase>;
+    ) as KnowledgeBaseEnvelope<KnowledgeBase>;
+    return response.data;
   }
 
   /**
@@ -150,11 +197,12 @@ export class KnowledgeBases extends APIResource {
    * @returns The created knowledge base.
    */
   async create(params: KnowledgeBaseCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBase> {
-    return this._client.post<KnowledgeBase>(
+    const response = await this._client.post<KnowledgeBaseEnvelope<KnowledgeBase>>(
       '/api/knowledge-bases',
       params,
       options,
-    ) as Promise<KnowledgeBase>;
+    ) as KnowledgeBaseEnvelope<KnowledgeBase>;
+    return response.data;
   }
 
   /**
@@ -166,22 +214,23 @@ export class KnowledgeBases extends APIResource {
    * @returns The updated knowledge base.
    */
   async update(id: string, params: KnowledgeBaseUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBase> {
-    return this._client.put<KnowledgeBase>(
-      `/api/knowledge-bases/${id}`,
+    const response = await this._client.put<KnowledgeBaseEnvelope<KnowledgeBase>>(
+      `/api/knowledge-bases/${encodeURIComponent(id)}`,
       params,
       options,
-    ) as Promise<KnowledgeBase>;
+    ) as KnowledgeBaseEnvelope<KnowledgeBase>;
+    return response.data;
   }
 
   /**
-   * Deletes a knowledge base.
+   * Deletes a knowledge base. The deletion is soft: `update(id, { isActive: true })` restores it.
    *
    * @param id - The knowledge base identifier.
    * @param options - Per-request options.
    */
   async delete(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<void> {
     await this._client.delete<void>(
-      `/api/knowledge-bases/${id}`,
+      `/api/knowledge-bases/${encodeURIComponent(id)}`,
       options,
     );
   }
@@ -196,25 +245,28 @@ export class KnowledgeBases extends APIResource {
    */
   async search(id: string, params: KnowledgeBaseSearchParams, options?: Omit<RequestOptions, 'raw'>): Promise<SearchResult> {
     return this._client.post<SearchResult>(
-      `/api/knowledge-bases/${id}/search`,
+      `/api/knowledge-bases/${encodeURIComponent(id)}/search`,
       params,
       options,
     ) as Promise<SearchResult>;
   }
 
   /**
-   * Triggers a sync operation for the knowledge base.
+   * Regenerates the embeddings of the knowledge base's documents. The call
+   * waits until the sync finishes.
    *
    * @param id - The knowledge base identifier.
+   * @param params - Optional sync parameters.
    * @param options - Per-request options.
    * @returns The sync operation result.
    */
-  async sync(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<SyncResult> {
-    return this._client.post<SyncResult>(
-      `/api/knowledge-bases/${id}/sync`,
-      undefined,
+  async sync(id: string, params?: KnowledgeBaseSyncParams, options?: Omit<RequestOptions, 'raw'>): Promise<SyncResult> {
+    const response = await this._client.post<KnowledgeBaseEnvelope<SyncResult>>(
+      `/api/knowledge-bases/${encodeURIComponent(id)}/sync`,
+      params ?? {},
       options,
-    ) as Promise<SyncResult>;
+    ) as KnowledgeBaseEnvelope<SyncResult>;
+    return response.data;
   }
 
   /**
@@ -238,36 +290,36 @@ export class KnowledgeBases extends APIResource {
 /**
  * Sub-resource for managing documents within a specific knowledge base.
  *
- * Obtain via {@link KnowledgeBases.documents}.
+ * Obtain via {@link KnowledgeBases.documents}. Documents are addressed by
+ * their `documentId` (your identifier), not by their internal `id`.
  *
  * @example
  * ```ts
- * const docs = client.knowledgeBases.documents('kb_abc123');
+ * const docs = client.knowledgeBases.documents(knowledgeBaseId);
  *
  * const doc = await docs.create({
+ *   documentId: 'invoice-001',
  *   content: { title: 'Invoice #001', amount: 100 },
  *   metadata: { source: 'email' },
  * });
  *
+ * const same = await docs.get('invoice-001');
  * const page = await docs.list({ limit: 10 });
  * ```
  */
 export class KnowledgeBaseDocuments {
-  /** @internal */
   protected _client: APIClient;
-  /** @internal */
   protected _basePath: string;
 
-  /** @internal */
   constructor(client: APIClient, knowledgeBaseId: string) {
     this._client = client;
-    this._basePath = `/api/knowledge-bases/${knowledgeBaseId}/documents`;
+    this._basePath = `/api/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`;
   }
 
   /**
-   * Lists documents with optional pagination.
+   * Lists documents with optional pagination and filters.
    *
-   * @param params - Optional pagination parameters.
+   * @param params - Optional pagination and filter parameters.
    * @param options - Per-request options.
    * @returns A paginated list of documents.
    */
@@ -286,58 +338,61 @@ export class KnowledgeBaseDocuments {
   }
 
   /**
-   * Retrieves a single document by ID.
+   * Retrieves a single document.
    *
-   * @param id - The document identifier.
+   * @param documentId - Your identifier for the document (its `documentId`, not its internal `id`).
    * @param options - Per-request options.
    */
-  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBaseDocument> {
-    return this._client.get<KnowledgeBaseDocument>(
-      `${this._basePath}/${id}`,
+  async get(documentId: string, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBaseDocument> {
+    const response = await this._client.get<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>(
+      `${this._basePath}/${encodeURIComponent(documentId)}`,
       options,
-    ) as Promise<KnowledgeBaseDocument>;
+    ) as KnowledgeBaseEnvelope<KnowledgeBaseDocument>;
+    return response.data;
   }
 
   /**
    * Creates a new document in the knowledge base.
    *
-   * @param params - Document content and optional metadata.
+   * @param params - Document identifier, content and optional metadata.
    * @param options - Per-request options.
    * @returns The created document.
    */
   async create(params: KBDocumentCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBaseDocument> {
-    return this._client.post<KnowledgeBaseDocument>(
+    const response = await this._client.post<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>(
       this._basePath,
       params,
       options,
-    ) as Promise<KnowledgeBaseDocument>;
+    ) as KnowledgeBaseEnvelope<KnowledgeBaseDocument>;
+    return response.data;
   }
 
   /**
    * Updates an existing document.
    *
-   * @param id - The document identifier.
+   * @param documentId - Your identifier for the document (its `documentId`, not its internal `id`).
    * @param params - Fields to update.
    * @param options - Per-request options.
    * @returns The updated document.
    */
-  async update(id: string, params: KBDocumentUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBaseDocument> {
-    return this._client.put<KnowledgeBaseDocument>(
-      `${this._basePath}/${id}`,
+  async update(documentId: string, params: KBDocumentUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<KnowledgeBaseDocument> {
+    const response = await this._client.put<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>(
+      `${this._basePath}/${encodeURIComponent(documentId)}`,
       params,
       options,
-    ) as Promise<KnowledgeBaseDocument>;
+    ) as KnowledgeBaseEnvelope<KnowledgeBaseDocument>;
+    return response.data;
   }
 
   /**
-   * Deletes a document from the knowledge base.
+   * Deletes a document.
    *
-   * @param id - The document identifier.
+   * @param documentId - Your identifier for the document (its `documentId`, not its internal `id`).
    * @param options - Per-request options.
    */
-  async delete(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<void> {
+  async delete(documentId: string, options?: Omit<RequestOptions, 'raw'>): Promise<void> {
     await this._client.delete<void>(
-      `${this._basePath}/${id}`,
+      `${this._basePath}/${encodeURIComponent(documentId)}`,
       options,
     );
   }
@@ -366,50 +421,50 @@ class KnowledgeBasesWithRawResponse {
     ) as Promise<RawResponse<PageResponse<KnowledgeBase>>>;
   }
 
-  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBase>> {
-    return this._client.get<KnowledgeBase>(
-      `/api/knowledge-bases/${id}`,
+  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBase>>> {
+    return this._client.get<KnowledgeBaseEnvelope<KnowledgeBase>>(
+      `/api/knowledge-bases/${encodeURIComponent(id)}`,
       { ...options, raw: true },
-    ) as Promise<RawResponse<KnowledgeBase>>;
+    ) as Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBase>>>;
   }
 
-  async create(params: KnowledgeBaseCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBase>> {
-    return this._client.post<KnowledgeBase>(
+  async create(params: KnowledgeBaseCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBase>>> {
+    return this._client.post<KnowledgeBaseEnvelope<KnowledgeBase>>(
       '/api/knowledge-bases',
       params,
       { ...options, raw: true },
-    ) as Promise<RawResponse<KnowledgeBase>>;
+    ) as Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBase>>>;
   }
 
-  async update(id: string, params: KnowledgeBaseUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBase>> {
-    return this._client.put<KnowledgeBase>(
-      `/api/knowledge-bases/${id}`,
+  async update(id: string, params: KnowledgeBaseUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBase>>> {
+    return this._client.put<KnowledgeBaseEnvelope<KnowledgeBase>>(
+      `/api/knowledge-bases/${encodeURIComponent(id)}`,
       params,
       { ...options, raw: true },
-    ) as Promise<RawResponse<KnowledgeBase>>;
+    ) as Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBase>>>;
   }
 
   async delete(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<void>> {
     return this._client.delete<void>(
-      `/api/knowledge-bases/${id}`,
+      `/api/knowledge-bases/${encodeURIComponent(id)}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<void>>;
   }
 
   async search(id: string, params: KnowledgeBaseSearchParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<SearchResult>> {
     return this._client.post<SearchResult>(
-      `/api/knowledge-bases/${id}/search`,
+      `/api/knowledge-bases/${encodeURIComponent(id)}/search`,
       params,
       { ...options, raw: true },
     ) as Promise<RawResponse<SearchResult>>;
   }
 
-  async sync(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<SyncResult>> {
-    return this._client.post<SyncResult>(
-      `/api/knowledge-bases/${id}/sync`,
-      undefined,
+  async sync(id: string, params?: KnowledgeBaseSyncParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseEnvelope<SyncResult>>> {
+    return this._client.post<KnowledgeBaseEnvelope<SyncResult>>(
+      `/api/knowledge-bases/${encodeURIComponent(id)}/sync`,
+      params ?? {},
       { ...options, raw: true },
-    ) as Promise<RawResponse<SyncResult>>;
+    ) as Promise<RawResponse<KnowledgeBaseEnvelope<SyncResult>>>;
   }
 }
 
@@ -431,32 +486,32 @@ class KnowledgeBaseDocumentsWithRawResponse {
     ) as Promise<RawResponse<PageResponse<KnowledgeBaseDocument>>>;
   }
 
-  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseDocument>> {
-    return this._client.get<KnowledgeBaseDocument>(
-      `${this._basePath}/${id}`,
+  async get(documentId: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>> {
+    return this._client.get<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>(
+      `${this._basePath}/${encodeURIComponent(documentId)}`,
       { ...options, raw: true },
-    ) as Promise<RawResponse<KnowledgeBaseDocument>>;
+    ) as Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>>;
   }
 
-  async create(params: KBDocumentCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseDocument>> {
-    return this._client.post<KnowledgeBaseDocument>(
+  async create(params: KBDocumentCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>> {
+    return this._client.post<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>(
       this._basePath,
       params,
       { ...options, raw: true },
-    ) as Promise<RawResponse<KnowledgeBaseDocument>>;
+    ) as Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>>;
   }
 
-  async update(id: string, params: KBDocumentUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseDocument>> {
-    return this._client.put<KnowledgeBaseDocument>(
-      `${this._basePath}/${id}`,
+  async update(documentId: string, params: KBDocumentUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>> {
+    return this._client.put<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>(
+      `${this._basePath}/${encodeURIComponent(documentId)}`,
       params,
       { ...options, raw: true },
-    ) as Promise<RawResponse<KnowledgeBaseDocument>>;
+    ) as Promise<RawResponse<KnowledgeBaseEnvelope<KnowledgeBaseDocument>>>;
   }
 
-  async delete(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<void>> {
+  async delete(documentId: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<void>> {
     return this._client.delete<void>(
-      `${this._basePath}/${id}`,
+      `${this._basePath}/${encodeURIComponent(documentId)}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<void>>;
   }
