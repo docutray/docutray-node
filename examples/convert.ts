@@ -13,9 +13,24 @@ import { config } from 'dotenv';
 import { readFileSync } from 'node:fs';
 
 config({ path: new URL('.env', import.meta.url) });
-import DocuTray from 'docutray';
+import DocuTray, { isValidationOutcome, isValidationSystemFailure } from 'docutray';
+import type { ConversionValidation } from 'docutray';
 
 const client = new DocuTray();
+
+// Validation is informational: a conversion with validation issues still succeeds.
+function printValidation(validation: ConversionValidation | undefined) {
+  if (isValidationOutcome(validation)) {
+    console.log(`Validation: ${validation.valid ? 'valid' : 'invalid'}`);
+    for (const issue of [...validation.errors, ...validation.warnings]) {
+      console.log(`  - [${issue.severity}/${issue.source}] ${issue.field || '(root)'}: ${issue.message}`);
+    }
+  } else if (isValidationSystemFailure(validation)) {
+    console.log('Validation could not be completed; re-check later with documentTypes.validate().');
+  } else {
+    console.log('Validation skipped: the document type has no JSON Schema and no rules.');
+  }
+}
 
 async function convertFromFile() {
   console.log('--- Synchronous conversion from file ---');
@@ -26,13 +41,9 @@ async function convertFromFile() {
     filename: 'sample_invoice.pdf',
   });
 
-  if (result.data) {
-    console.log('Conversion successful!');
-    console.log('Extracted data:', JSON.stringify(result.data, null, 2));
-  } else {
-    console.log('Status:', result.status);
-    if (result.error) console.error('Error:', result.error);
-  }
+  console.log('Conversion successful!');
+  console.log('Extracted data:', JSON.stringify(result.data, null, 2));
+  printValidation(result.validation);
 }
 
 async function convertFromUrl() {
@@ -43,13 +54,9 @@ async function convertFromUrl() {
     url: 'https://storage.googleapis.com/public.docutray.com/api-examples/sample_invoice.pdf',
   });
 
-  if (result.data) {
-    console.log('Conversion successful!');
-    console.log('Extracted data:', JSON.stringify(result.data, null, 2));
-  } else {
-    console.log('Status:', result.status);
-    if (result.error) console.error('Error:', result.error);
-  }
+  console.log('Conversion successful!');
+  console.log('Extracted data:', JSON.stringify(result.data, null, 2));
+  printValidation(result.validation);
 }
 
 async function convertAsync() {
@@ -67,6 +74,7 @@ async function convertAsync() {
   });
 
   console.log('Final:', JSON.stringify(result, null, 2));
+  if (result.status === 'SUCCESS') printValidation(result.validation);
 }
 
 async function convertFromBase64() {
@@ -80,13 +88,9 @@ async function convertFromBase64() {
     contentType: 'application/pdf',
   });
 
-  if (result.data) {
-    console.log('Conversion successful!');
-    console.log('Extracted data:', JSON.stringify(result.data, null, 2));
-  } else {
-    console.log('Status:', result.status);
-    if (result.error) console.error('Error:', result.error);
-  }
+  console.log('Conversion successful!');
+  console.log('Extracted data:', JSON.stringify(result.data, null, 2));
+  printValidation(result.validation);
 }
 
 async function main() {

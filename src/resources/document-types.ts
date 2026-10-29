@@ -1,8 +1,9 @@
 import { APIResource } from '../resource.js';
 import type { APIClient } from '../core/api-client.js';
+import { DocuTrayError } from '../core/error.js';
 import { Page } from '../core/pagination.js';
 import type { PageResponse } from '../core/pagination.js';
-import type { DocumentType, DocumentTypeCreateParams, DocumentTypeUpdateParams, DocumentTypesListParams, ValidationResult } from '../types/document-type.js';
+import type { DocumentType, DocumentTypeCreateParams, DocumentTypeUpdateParams, DocumentTypeValidateParams, DocumentTypesListParams, ValidationResult } from '../types/document-type.js';
 import type { RequestOptions } from '../core/types.js';
 import type { RawResponse } from '../core/raw-response.js';
 
@@ -96,16 +97,45 @@ export class DocumentTypes extends APIResource {
   }
 
   /**
-   * Validates a document type schema.
+   * Validates a document's data against a document type, without running OCR
+   * or changing the document type.
+   *
+   * Runs the type's JSON Schema and DSL rules. Pass `dslRules` to test
+   * temporary rules instead of the stored ones (dry-run); `null` or `''` tests
+   * without DSL rules. The call succeeds even when the data has errors:
+   * inspect `valid` (or {@link isValidationValid}).
+   *
+   * Without `dslRules`, `data` is sent as the whole request body. An object
+   * with both `data` and `dslRules` at its root is reserved by the API for
+   * dry-run requests, so validate such a document by passing `dslRules`.
    *
    * @param id - The document type identifier.
+   * @param data - The document data to validate (e.g. the `data` of a conversion).
+   * @param params - Optional temporary DSL rules.
    * @param options - Per-request options.
-   * @returns The validation result with errors and warnings.
+   * @returns The validation result with `valid`, `issues` and the error/warning summaries.
+   * @throws {DocuTrayError} When `data` is `undefined`, before any request is sent.
+   * @throws {DSLValidationError} When `dslRules` fails to compile.
+   *
+   * @example
+   * ```ts
+   * const result = await client.documentTypes.validate('dt_invoice', extracted, {
+   *   dslRules: 'field.total greaterThan 0',
+   * });
+   * if (!result.valid) {
+   *   for (const issue of result.issues ?? []) console.log(issue.field, issue.message);
+   * }
+   * ```
    */
-  async validate(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<ValidationResult> {
+  async validate(
+    id: string,
+    data: unknown,
+    params?: DocumentTypeValidateParams,
+    options?: Omit<RequestOptions, 'raw'>,
+  ): Promise<ValidationResult> {
     return this._client.post<ValidationResult>(
       `/api/document-types/${id}/validate`,
-      undefined,
+      validateBody(data, params),
       options,
     ) as Promise<ValidationResult>;
   }
@@ -157,11 +187,32 @@ class DocumentTypesWithRawResponse {
     ) as Promise<RawResponse<DocumentType>>;
   }
 
-  async validate(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ValidationResult>> {
+  async validate(
+    id: string,
+    data: unknown,
+    params?: DocumentTypeValidateParams,
+    options?: Omit<RequestOptions, 'raw'>,
+  ): Promise<RawResponse<ValidationResult>> {
     return this._client.post<ValidationResult>(
       `/api/document-types/${id}/validate`,
-      undefined,
+      validateBody(data, params),
       { ...options, raw: true },
     ) as Promise<RawResponse<ValidationResult>>;
   }
+}
+
+/**
+ * Builds the validate request body: the `{ data, dslRules }` dry-run envelope
+ * when `dslRules` is given (including `null`), otherwise the data itself.
+ *
+ * `undefined` data is rejected: JSON serialization would drop it, sending no
+ * body or a `{ dslRules }` document that the API validates as data.
+ *
+ * @internal
+ */
+function validateBody(data: unknown, params?: DocumentTypeValidateParams): unknown {
+  if (data === undefined) {
+    throw new DocuTrayError('Must provide data to validate');
+  }
+  return params?.dslRules !== undefined ? { data, dslRules: params.dslRules } : data;
 }

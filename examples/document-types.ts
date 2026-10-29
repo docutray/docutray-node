@@ -1,7 +1,7 @@
 /**
  * Example: Document Types
  *
- * Demonstrates how to list, retrieve, and validate document type definitions.
+ * Demonstrates how to list, retrieve, and validate data against document type definitions.
  *
  * NOTE: Running this example will consume API credits.
  *
@@ -44,9 +44,12 @@ async function getDocumentType(id: string) {
 }
 
 async function validateDocumentType(id: string) {
-  console.log(`\n--- Validate document type: ${id} ---`);
+  console.log(`\n--- Validate data against document type: ${id} ---`);
 
-  const result = await client.documentTypes.validate(id);
+  const data = { invoice_number: 'INV-001', subtotal: 1000, tax: 190, total: 1290 };
+
+  // Validate with the stored JSON Schema and DSL rules
+  const result = await client.documentTypes.validate(id, data);
 
   if (isValidationValid(result)) {
     console.log('Validation passed!');
@@ -58,10 +61,16 @@ async function validateDocumentType(id: string) {
     }
   } else {
     console.log(`Validation failed with ${result.errors.count} error(s):`);
-    for (const msg of result.errors.messages) {
-      console.log(`  - ${msg}`);
+    for (const issue of result.issues ?? []) {
+      console.log(`  - [${issue.severity}/${issue.source}] ${issue.field || '(root)'}: ${issue.message}`);
     }
   }
+
+  // Dry-run: test temporary rules without saving them
+  const dryRun = await client.documentTypes.validate(id, data, {
+    dslRules: 'define expected sum field.subtotal field.tax\nfield.total equalsWithPrecision(calculated.expected, 2)',
+  });
+  console.log(`Dry-run with temporary rules: ${dryRun.valid ? 'valid' : 'invalid'}`);
 }
 
 // Uncomment the function you want to run:

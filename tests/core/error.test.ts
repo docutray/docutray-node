@@ -5,6 +5,7 @@ import {
   APITimeoutError,
   APIError,
   BadRequestError,
+  DSLValidationError,
   AuthenticationError,
   PermissionDeniedError,
   NotFoundError,
@@ -130,5 +131,31 @@ describe('RateLimitError', () => {
     expect(error.limit).toBeUndefined();
     expect(error.remaining).toBeUndefined();
     expect(error.resetTime).toBeUndefined();
+  });
+});
+
+describe('DSLValidationError', () => {
+  const headers = new Headers();
+
+  it('is generated for a 400 whose errors carry line and column', () => {
+    const body = { error: 'Reglas DSL inválidas', errors: [{ line: 2, column: 5, message: 'Token inesperado' }] };
+    const error = APIError.generate(400, body, 'Reglas DSL inválidas', headers);
+
+    expect(error).toBeInstanceOf(DSLValidationError);
+    expect(error).toBeInstanceOf(BadRequestError);
+    expect(error.name).toBe('DSLValidationError');
+    expect((error as DSLValidationError).diagnostics).toEqual([{ line: 2, column: 5, message: 'Token inesperado' }]);
+  });
+
+  it.each([
+    ['string errors', { error: 'Validation error', errors: ['Invalid url'] }],
+    ['no errors', { error: 'Invalid body' }],
+    ['an empty errors array', { error: 'x', errors: [] }],
+    ['entries without column', { error: 'x', errors: [{ line: 1, message: 'm' }] }],
+  ])('stays a plain BadRequestError for %s', (_label, body) => {
+    const error = APIError.generate(400, body, 'msg', headers);
+
+    expect(error).toBeInstanceOf(BadRequestError);
+    expect(error).not.toBeInstanceOf(DSLValidationError);
   });
 });

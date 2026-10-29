@@ -1,3 +1,5 @@
+import type { DSLDiagnostic } from '../types/validation.js';
+
 /** @internal */
 function parseNumericHeader(value: string | null): number | undefined {
   if (value === null) return undefined;
@@ -85,8 +87,13 @@ export class APIError extends DocuTrayError {
     headers: Headers,
   ): APIError {
     switch (statusCode) {
-      case 400:
+      case 400: {
+        const diagnostics = parseDSLDiagnostics(body);
+        if (diagnostics) {
+          return new DSLValidationError(statusCode, body, message, headers, diagnostics);
+        }
         return new BadRequestError(statusCode, body, message, headers);
+      }
       case 401:
         return new AuthenticationError(statusCode, body, message, headers);
       case 403:
@@ -121,6 +128,60 @@ export class BadRequestError extends APIError {
     super(statusCode, body, message, headers);
     this.name = 'BadRequestError';
   }
+}
+
+/**
+ * Thrown on HTTP 400 responses when DSL rules fail to compile (on
+ * `documentTypes.create()`, `update()` or a `validate()` dry-run).
+ *
+ * `diagnostics` lists each problem with its 1-based line and column. Messages
+ * are written in Spanish by the API. Nothing is saved when this is thrown.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await client.documentTypes.update(id, { dslRules });
+ * } catch (error) {
+ *   if (error instanceof DSLValidationError) {
+ *     for (const d of error.diagnostics) console.log(`${d.line}:${d.column} ${d.message}`);
+ *   }
+ * }
+ * ```
+ */
+export class DSLValidationError extends BadRequestError {
+  /** Compilation problems, ordered by position. */
+  readonly diagnostics: DSLDiagnostic[];
+
+  constructor(
+    statusCode: number,
+    body: unknown,
+    message: string,
+    headers: Headers,
+    diagnostics: DSLDiagnostic[],
+  ) {
+    super(statusCode, body, message, headers);
+    this.name = 'DSLValidationError';
+    this.diagnostics = diagnostics;
+  }
+}
+
+/**
+ * Returns the DSL diagnostics of a 400 body (`{ error, errors: [{ line, column, message }] }`),
+ * or `undefined` when the body is not a DSL compilation error.
+ *
+ * @internal
+ */
+function parseDSLDiagnostics(body: unknown): DSLDiagnostic[] | undefined {
+  if (!body || typeof body !== 'object') return undefined;
+  const errors = (body as Record<string, unknown>).errors;
+  if (!Array.isArray(errors) || errors.length === 0) return undefined;
+  const isDiagnostic = (entry: unknown): entry is DSLDiagnostic =>
+    typeof entry === 'object' && entry !== null
+    && typeof (entry as DSLDiagnostic).line === 'number'
+    && typeof (entry as DSLDiagnostic).column === 'number'
+    && typeof (entry as DSLDiagnostic).message === 'string';
+  if (!errors.every(isDiagnostic)) return undefined;
+  return errors.map(({ line, column, message }) => ({ line, column, message }));
 }
 
 /**

@@ -1,6 +1,6 @@
 import { APIClient } from '../../src/core/api-client.js';
 import { DocuTray } from '../../src/client.js';
-import type { ConversionStatus } from '../../src/types/convert.js';
+import type { ConversionResult, ConversionStatus } from '../../src/types/convert.js';
 import type { IdentificationStatus } from '../../src/types/identify.js';
 import type { ConversionSpec, DocumentType, ValidationResult } from '../../src/types/document-type.js';
 import type { StepExecutionStatus } from '../../src/types/step.js';
@@ -32,6 +32,12 @@ export const mockConversionStatus: ConversionStatus = {
   original_filename: 'test.pdf',
   data: { field1: 'value1' },
   error: null,
+};
+
+/** Body of a synchronous `POST /api/convert`: data and validation, no status fields. */
+export const mockConversionResult: ConversionResult = {
+  data: { field1: 'value1' },
+  validation: { valid: true, errors: [], warnings: [] },
 };
 
 export const mockConversionPending: ConversionStatus = {

@@ -1,5 +1,6 @@
 import type { FileInput } from '../core/types.js';
 import type { ImageContentType } from './shared.js';
+import type { ValidationSummary } from './validation.js';
 
 /**
  * Possible statuses for a step execution.
@@ -32,8 +33,8 @@ export interface StepExecutionStatus {
   error: string | Record<string, unknown> | null;
   /** Document identification result from the step pipeline. */
   identification?: Record<string, unknown> | null;
-  /** Validation result from the step pipeline. */
-  validation?: Record<string, unknown> | null;
+  /** Validation summary from the step pipeline: error and warning counts and messages. */
+  validation?: ValidationSummary | null;
   /** Additional metadata attached to the document. */
   document_metadata?: Record<string, unknown> | null;
 }

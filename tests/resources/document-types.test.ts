@@ -138,7 +138,7 @@ describe('DocumentTypes', () => {
       );
 
       const dt = createDocumentTypes();
-      const result = await dt.validate('dt-789');
+      const result = await dt.validate('dt-789', { total: 100 });
 
       expect(result.errors.count).toBe(0);
       expect(result.warnings.count).toBe(1);
@@ -552,7 +552,7 @@ describe('DocumentTypes', () => {
       );
 
       const dt = createDocumentTypes();
-      const raw = await dt.withRawResponse.validate('dt-789');
+      const raw = await dt.withRawResponse.validate('dt-789', { total: 100 });
 
       expect(raw).toBeInstanceOf(RawResponse);
       expect(raw.statusCode).toBe(200);

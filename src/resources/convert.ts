@@ -7,7 +7,7 @@ import {
   isConversionComplete,
   isConversionError,
 } from '../types/convert.js';
-import type { ConversionStatus, ConvertParams } from '../types/convert.js';
+import type { ConversionResult, ConversionStatus, ConvertParams } from '../types/convert.js';
 import type { RequestOptions } from '../core/types.js';
 import type { RawResponse } from '../core/raw-response.js';
 import type { PollOptions } from '../core/polling.js';
@@ -45,11 +45,11 @@ export class Convert extends APIResource {
    *
    * @param params - Conversion parameters including document type and file source.
    * @param options - Per-request options.
-   * @returns The conversion status with extracted data.
+   * @returns The extracted data, its `validation` and, when enabled, `field_locations`.
    * @throws {@link DocuTrayError} if no file source is provided.
    */
-  async run(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionStatus> {
-    return this._run(params, '/api/convert', options) as Promise<ConversionStatus>;
+  async run(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionResult> {
+    return this._run(params, '/api/convert', options) as unknown as Promise<ConversionResult>;
   }
 
   /**
@@ -173,8 +173,8 @@ class ConvertWithRawResponse {
     this._client = client;
   }
 
-  async run(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionStatus>> {
-    return this._run(params, '/api/convert', { ...options, raw: true }) as Promise<RawResponse<ConversionStatus>>;
+  async run(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionResult>> {
+    return this._run(params, '/api/convert', { ...options, raw: true }) as unknown as Promise<RawResponse<ConversionResult>>;
   }
 
   async runAsync(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionStatus>> {

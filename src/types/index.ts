@@ -8,12 +8,40 @@ export type {
   ErrorDetail,
 } from './shared.js';
 
+// Validation types
+export type {
+  ValidationSeverity,
+  ValidationIssueSource,
+  ValidationIssue,
+  ValidationOutcome,
+  ValidationSystemFailure,
+  ConversionValidation,
+  ValidationErrorInfo,
+  ValidationWarningInfo,
+  ValidationSummary,
+  DSLDiagnostic,
+} from './validation.js';
+export {
+  isValidationOutcome,
+  isValidationSystemFailure,
+} from './validation.js';
+
+// Webhook types
+export type {
+  WebhookEventType,
+  ConversionWebhookPayload,
+} from './webhook.js';
+
 // Convert types
 export type {
   ConversionStatusType,
   ConversionResult,
   ConversionStatus,
   ConvertParams,
+  FieldLocations,
+  FieldLocation,
+  FieldLocationBox,
+  FieldLocationsPage,
 } from './convert.js';
 export {
   isConversionComplete,
@@ -46,8 +74,7 @@ export type {
   DocumentType,
   DocumentTypeCreateParams,
   DocumentTypeUpdateParams,
-  ValidationErrorInfo,
-  ValidationWarningInfo,
+  DocumentTypeValidateParams,
   ValidationResult,
   DocumentTypesListParams,
 } from './document-type.js';
