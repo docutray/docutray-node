@@ -38,6 +38,7 @@ export type {
 export type {
   ConversionStatusType,
   ConversionResult,
+  ConversionEnqueued,
   ConversionStatus,
   ConvertParams,
   FieldLocations,

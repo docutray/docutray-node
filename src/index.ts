@@ -108,6 +108,7 @@ export type {
   ErrorDetail,
   ConversionStatusType,
   ConversionResult,
+  ConversionEnqueued,
   ConversionStatus,
   ConvertParams,
   FieldLocations,

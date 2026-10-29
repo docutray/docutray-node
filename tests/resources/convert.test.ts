@@ -9,6 +9,7 @@ import {
   mockConversionStatus,
   mockConversionPending,
   mockConversionResult,
+  mockConversionEnqueued,
 } from '../helpers/fixtures.js';
 
 function createConvert(): Convert {
@@ -122,7 +123,7 @@ describe('Convert', () => {
     it('returns status with wait() method', async () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/convert-async`, () => {
-          return HttpResponse.json(mockConversionPending);
+          return HttpResponse.json(mockConversionEnqueued);
         }),
       );
 
@@ -134,6 +135,7 @@ describe('Convert', () => {
 
       expect(status.conversion_id).toBe('conv-123');
       expect(status.status).toBe('ENQUEUED');
+      expect(status.status_url).toBe('https://app.docutray.com/api/convert-async/status/conv-123');
       expect(typeof status.wait).toBe('function');
     });
 
@@ -141,7 +143,7 @@ describe('Convert', () => {
       let pollCount = 0;
       server.use(
         http.post(`${TEST_BASE_URL}/api/convert-async`, () => {
-          return HttpResponse.json(mockConversionPending);
+          return HttpResponse.json(mockConversionEnqueued);
         }),
         http.get(`${TEST_BASE_URL}/api/convert-async/status/conv-123`, () => {
           pollCount++;
@@ -165,7 +167,7 @@ describe('Convert', () => {
 
     it('wait() ignores getStatus and isComplete passed from JavaScript', async () => {
       server.use(
-        http.post(`${TEST_BASE_URL}/api/convert-async`, () => HttpResponse.json(mockConversionPending)),
+        http.post(`${TEST_BASE_URL}/api/convert-async`, () => HttpResponse.json(mockConversionEnqueued)),
         http.get(`${TEST_BASE_URL}/api/convert-async/status/conv-123`, () =>
           HttpResponse.json({ ...mockConversionPending, status: 'ERROR', error: 'failed' }),
         ),
@@ -180,7 +182,7 @@ describe('Convert', () => {
 
     it('wait() resolves with the ERROR status instead of throwing', async () => {
       server.use(
-        http.post(`${TEST_BASE_URL}/api/convert-async`, () => HttpResponse.json(mockConversionPending)),
+        http.post(`${TEST_BASE_URL}/api/convert-async`, () => HttpResponse.json(mockConversionEnqueued)),
         http.get(`${TEST_BASE_URL}/api/convert-async/status/conv-123`, () =>
           HttpResponse.json({ ...mockConversionPending, status: 'ERROR', error: 'Conversion timeout exceeded' }),
         ),

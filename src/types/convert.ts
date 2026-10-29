@@ -78,6 +78,18 @@ export interface ConversionResult {
 }
 
 /**
+ * Response of `convert.runAsync()`: the conversion was queued.
+ */
+export interface ConversionEnqueued {
+  /** Unique identifier for this conversion; pass it to `convert.getStatus()`. */
+  conversion_id: string;
+  /** Absolute URL of the conversion's status endpoint. */
+  status_url: string;
+  /** Always `ENQUEUED`. */
+  status: 'ENQUEUED';
+}
+
+/**
  * Status of a conversion operation, as returned by the API.
  */
 export interface ConversionStatus {

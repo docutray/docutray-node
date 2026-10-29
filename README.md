@@ -223,7 +223,7 @@ Automatically identify document types.
 const result = await client.identify.run({
   file: readFileSync('unknown_document.pdf'),
   documentTypeCodeOptions: ['invoice', 'receipt', 'contract'],
-  documentMetadata: { source: 'inbox' }, // optional, echoed in async statuses and webhooks
+  documentMetadata: { source: 'inbox' }, // optional, echoed in identification webhooks only
 });
 
 // When the document matches none of the options, the code is 'otro'

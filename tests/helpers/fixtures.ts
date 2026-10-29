@@ -1,6 +1,6 @@
 import { APIClient } from '../../src/core/api-client.js';
 import { DocuTray } from '../../src/client.js';
-import type { ConversionResult, ConversionStatus } from '../../src/types/convert.js';
+import type { ConversionEnqueued, ConversionResult, ConversionStatus } from '../../src/types/convert.js';
 import type { IdentificationEnqueued, IdentificationResult, IdentificationStatus } from '../../src/types/identify.js';
 import type { ConversionSpec, DocumentType, ValidationResult } from '../../src/types/document-type.js';
 import type { StepExecutionEnqueued, StepExecutionStatus } from '../../src/types/step.js';
@@ -38,6 +38,13 @@ export const mockConversionStatus: ConversionStatus = {
 export const mockConversionResult: ConversionResult = {
   data: { field1: 'value1' },
   validation: { valid: true, errors: [], warnings: [] },
+};
+
+/** Body of `POST /api/convert-async`. */
+export const mockConversionEnqueued: ConversionEnqueued = {
+  conversion_id: 'conv-123',
+  status_url: 'https://app.docutray.com/api/convert-async/status/conv-123',
+  status: 'ENQUEUED',
 };
 
 export const mockConversionPending: ConversionStatus = {

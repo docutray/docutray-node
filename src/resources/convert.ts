@@ -6,13 +6,13 @@ import { prepareFileUpload, prepareUrlUpload, prepareBase64Upload } from '../lib
 import {
   isConversionComplete,
 } from '../types/convert.js';
-import type { ConversionResult, ConversionStatus, ConvertParams } from '../types/convert.js';
+import type { ConversionEnqueued, ConversionResult, ConversionStatus, ConvertParams } from '../types/convert.js';
 import type { RequestOptions } from '../core/types.js';
 import type { RawResponse } from '../core/raw-response.js';
 import type { WaitOptions } from '../core/polling.js';
 
 /** @internal */
-type ConversionStatusWithWait = ConversionStatus & {
+type ConversionEnqueuedWithWait = ConversionEnqueued & {
   wait: (pollOptions?: WaitOptions<ConversionStatus>) => Promise<ConversionStatus>;
 };
 
@@ -73,8 +73,8 @@ export class Convert extends APIResource {
    * });
    * ```
    */
-  async runAsync(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionStatusWithWait> {
-    const status = await this._run<ConversionStatus>(params, '/api/convert-async', options) as ConversionStatus;
+  async runAsync(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionEnqueuedWithWait> {
+    const status = await this._run<ConversionEnqueued>(params, '/api/convert-async', options) as ConversionEnqueued;
     return Object.assign(status, {
       wait: (pollOptions?: WaitOptions<ConversionStatus>) =>
         waitForCompletion<ConversionStatus>({
@@ -174,8 +174,8 @@ class ConvertWithRawResponse {
     return this._run<ConversionResult>(params, '/api/convert', { ...options, raw: true }) as Promise<RawResponse<ConversionResult>>;
   }
 
-  async runAsync(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionStatus>> {
-    return this._run<ConversionStatus>(params, '/api/convert-async', { ...options, raw: true }) as Promise<RawResponse<ConversionStatus>>;
+  async runAsync(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionEnqueued>> {
+    return this._run<ConversionEnqueued>(params, '/api/convert-async', { ...options, raw: true }) as Promise<RawResponse<ConversionEnqueued>>;
   }
 
   async getStatus(conversionId: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionStatus>> {
