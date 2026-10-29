@@ -108,6 +108,24 @@ describe('Convert', () => {
       });
     });
 
+    it('sends the data URI MIME type for base64 without contentType', async () => {
+      let receivedBody: Record<string, unknown> = {};
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/convert`, async ({ request }) => {
+          receivedBody = await request.json() as Record<string, unknown>;
+          return HttpResponse.json(mockConversionResult);
+        }),
+      );
+
+      await createConvert().run({ documentTypeCode: 'invoice', base64: 'data:application/pdf;base64,JVBERi0=' });
+
+      expect(receivedBody).toEqual({
+        image_base64: 'JVBERi0=',
+        image_content_type: 'application/pdf',
+        document_type_code: 'invoice',
+      });
+    });
+
     it('throws when no file source is provided', async () => {
       const convert = createConvert();
       await expect(

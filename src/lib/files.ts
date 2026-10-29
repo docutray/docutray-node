@@ -145,27 +145,31 @@ export function prepareUrlUpload(
 }
 
 /** @internal */
-const DATA_URI_REGEX = /^data:[^;]+;base64,/;
+const DATA_URI_REGEX = /^data:([^;]+);base64,/;
 
 /**
  * Prepares a base64-encoded upload body, stripping data-URI prefixes if present.
  *
+ * The API needs the MIME type of prefix-less base64, so a data URI's type is
+ * sent as `image_content_type` once the prefix is stripped.
+ *
  * @param base64 - The base64 string, optionally with a `data:...;base64,` prefix.
- * @param contentType - Optional MIME type hint (ignored when a data-URI prefix is present).
+ * @param contentType - Optional MIME type hint (the data-URI type takes precedence).
  * @returns A {@link Base64UploadBody} ready for JSON serialization.
  */
 export function prepareBase64Upload(
   base64: string,
   contentType?: string,
 ): Base64UploadBody {
-  const hasDataUri = DATA_URI_REGEX.test(base64);
+  const dataUri = DATA_URI_REGEX.exec(base64);
 
   const body: Base64UploadBody = {
-    image_base64: hasDataUri ? base64.replace(DATA_URI_REGEX, '') : base64,
+    image_base64: dataUri ? base64.slice(dataUri[0].length) : base64,
   };
 
-  if (!hasDataUri && contentType) {
-    body.image_content_type = contentType;
+  const type = dataUri ? dataUri[1] : contentType;
+  if (type) {
+    body.image_content_type = type;
   }
 
   return body;
