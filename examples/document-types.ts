@@ -22,7 +22,7 @@ async function listDocumentTypes() {
   console.log(`Found ${page.data.length} document types on this page`);
 
   for (const dt of page.data) {
-    console.log(`  - ${dt.name} (${dt.codeType}) [${dt.isPublic ? 'public' : 'private'}]`);
+    console.log(`  - ${dt.name} (${dt.codeType}) [${dt.isPublic ? 'public' : 'private'}] id=${dt.id}`);
   }
 
   // Auto-paginate through all pages
@@ -73,7 +73,9 @@ async function validateDocumentType(id: string) {
   console.log(`Dry-run with temporary rules: ${dryRun.valid ? 'valid' : 'invalid'}`);
 }
 
-// Uncomment the function you want to run:
+// Uncomment the function you want to run.
+// get() and validate() take the document type id (a cuid), not its codeType:
+// find the id with listDocumentTypes() first.
 // listDocumentTypes();
-// getDocumentType('dt_abc123');
-// validateDocumentType('dt_abc123');
+// getDocumentType('YOUR_DOCUMENT_TYPE_ID');
+// validateDocumentType('YOUR_DOCUMENT_TYPE_ID');

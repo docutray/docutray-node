@@ -48,7 +48,7 @@ const client = new DocuTray({ apiKey: 'your-api-key' });
 
 // Via environment variable
 // export DOCUTRAY_API_KEY="your-api-key"
-const client = new DocuTray(); // Reads from DOCUTRAY_API_KEY
+const envClient = new DocuTray(); // Reads from DOCUTRAY_API_KEY
 ```
 
 ### Base URL
@@ -82,10 +82,10 @@ Configure automatic retry behavior:
 const client = new DocuTray({ apiKey: 'your-api-key' });
 
 // Custom retry count
-const client = new DocuTray({ apiKey: 'your-api-key', maxRetries: 5 });
+const patientClient = new DocuTray({ apiKey: 'your-api-key', maxRetries: 5 });
 
 // Disable retries
-const client = new DocuTray({ apiKey: 'your-api-key', maxRetries: 0 });
+const noRetryClient = new DocuTray({ apiKey: 'your-api-key', maxRetries: 0 });
 ```
 
 ## Error Handling
@@ -119,6 +119,7 @@ import DocuTray, {
   RateLimitError,
   NotFoundError,
 } from 'docutray';
+import { readFileSync } from 'fs';
 
 const client = new DocuTray({ apiKey: 'your-api-key' });
 
@@ -164,7 +165,7 @@ console.log(result.validation);      // see "Conversion validation" below
 console.log(result.field_locations); // only when the type has boundingBoxesEnabled
 
 // From URL
-const result = await client.convert.run({
+const fromUrl = await client.convert.run({
   url: 'https://example.com/invoice.pdf',
   documentTypeCode: 'invoice',
 });
@@ -174,11 +175,11 @@ const status = await client.convert.runAsync({
   file: readFileSync('large_document.pdf'),
   documentTypeCode: 'invoice',
 });
-console.log(`Conversion ID: ${status.conversionId}`);
+console.log(`Conversion ID: ${status.conversion_id}`);
 
-// Poll for completion
+// Poll until the conversion reaches SUCCESS or ERROR
 const final = await status.wait();
-if (final.isSuccess()) {
+if (final.status === 'SUCCESS') {
   console.log(final.data);
 }
 ```
@@ -193,7 +194,10 @@ conversion status.
 ```typescript
 import { isValidationOutcome, isValidationSystemFailure } from 'docutray';
 
-const { validation } = await client.convert.run({ url, documentTypeCode: 'invoice' });
+const { validation } = await client.convert.run({
+  url: 'https://example.com/invoice.pdf',
+  documentTypeCode: 'invoice',
+});
 
 if (isValidationOutcome(validation)) {
   // Validation ran: { valid, errors: ValidationIssue[], warnings: ValidationIssue[] }
@@ -219,11 +223,13 @@ const result = await client.identify.run({
   file: readFileSync('unknown_document.pdf'),
 });
 
-console.log(`Identified as: ${result.documentType.name}`);
-console.log(`Confidence: ${(result.documentType.confidence * 100).toFixed(1)}%`);
+if (result.document_type) {
+  console.log(`Identified as: ${result.document_type.name} (${result.document_type.code})`);
+  console.log(`Confidence: ${(result.document_type.confidence * 100).toFixed(1)}%`);
+}
 
 // View alternatives
-for (const alt of result.alternatives) {
+for (const alt of result.alternatives ?? []) {
   console.log(`  Alternative: ${alt.name} (${(alt.confidence * 100).toFixed(1)}%)`);
 }
 ```
@@ -236,17 +242,17 @@ List and retrieve document type definitions.
 // List all document types
 const page = await client.documentTypes.list();
 for (const docType of page.data) {
-  console.log(`${docType.code}: ${docType.name}`);
+  console.log(`${docType.codeType}: ${docType.name}`);
 }
 
 // Search document types
-const page = await client.documentTypes.list({ search: 'invoice' });
+const searchResults = await client.documentTypes.list({ search: 'invoice' });
 
-// Get a specific document type
-const docType = await client.documentTypes.get('dt_invoice');
+// Get a specific document type by its id
+const docType = await client.documentTypes.get('YOUR_DOCUMENT_TYPE_ID');
 
 // Validate data against a document type (JSON Schema + stored DSL rules)
-const validation = await client.documentTypes.validate('dt_invoice', {
+const validation = await client.documentTypes.validate('YOUR_DOCUMENT_TYPE_ID', {
   invoice_number: 'INV-001',
   total: 100.0,
 });
@@ -254,6 +260,22 @@ if (validation.valid) {
   console.log('Data is valid!');
 }
 ```
+
+> `get()`, `update()` and `validate()` take the document type's internal `id`
+> (a cuid such as `cm…`), not its `codeType`. The SDK does
+> not resolve codes: passing a `codeType` such as `'invoice'` returns a
+> `NotFoundError` (404). Resolve the code to an id with `list()` first:
+>
+> ```typescript
+> // `search` also matches names and descriptions, so check every page
+> const matches = await client.documentTypes.list({ search: 'invoice' });
+> for await (const dt of matches.autoPagingIter()) {
+>   if (dt.codeType === 'invoice') {
+>     const docType = await client.documentTypes.get(dt.id);
+>     break;
+>   }
+> }
+> ```
 
 #### Validation rules (DSL)
 
@@ -265,12 +287,12 @@ the type has no rules); `list()` does not include it.
 
 ```typescript
 // Save rules (64 KiB UTF-8 maximum)
-await client.documentTypes.update('dt_invoice', {
+await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', {
   dslRules: 'define expected sum field.subtotal field.tax\nfield.total equalsWithPrecision(calculated.expected, 2)',
 });
 
 // In update(), omitting dslRules keeps the stored rules; null or '' clears them
-await client.documentTypes.update('dt_invoice', { dslRules: null });
+await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', { dslRules: null });
 ```
 
 Test rules without saving them by passing `dslRules` to `validate()` (dry-run).
@@ -279,7 +301,7 @@ The JSON Schema still runs; `null` or `''` tests without rules. Without
 
 ```typescript
 const result = await client.documentTypes.validate(
-  'dt_invoice',
+  'YOUR_DOCUMENT_TYPE_ID',
   { subtotal: 1000, tax: 190, total: 1290 },
   { dslRules: 'field.total lessThan(1000)' },
 );
@@ -305,7 +327,7 @@ of each problem. Nothing is saved.
 import { DSLValidationError } from 'docutray';
 
 try {
-  await client.documentTypes.update('dt_invoice', { dslRules: 'field.total greaterThen 0' });
+  await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', { dslRules: 'field.total greaterThen 0' });
 } catch (error) {
   if (error instanceof DSLValidationError) {
     for (const d of error.diagnostics) {
@@ -328,7 +350,7 @@ CSV/Excel columns used by tray export. It comes in two formats — legacy
 import { isMultiSheetConversionSpec } from 'docutray';
 
 // Read the stored spec (null when the document type has none)
-const docType = await client.documentTypes.get('dt_invoice');
+const docType = await client.documentTypes.get('YOUR_DOCUMENT_TYPE_ID');
 if (isMultiSheetConversionSpec(docType.conversionSpec)) {
   console.log(docType.conversionSpec.sheets.map((sheet) => sheet.name));
 }
@@ -348,7 +370,7 @@ await client.documentTypes.create({
 });
 
 // Update with a multi-sheet spec
-await client.documentTypes.update('dt_invoice', {
+await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', {
   conversionSpec: {
     sheets: [
       {
@@ -367,7 +389,7 @@ await client.documentTypes.update('dt_invoice', {
 });
 
 // Omit conversionSpec to leave the stored spec untouched; pass null to clear it
-await client.documentTypes.update('dt_invoice', { conversionSpec: null });
+await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', { conversionSpec: null });
 ```
 
 When forwarding a spec read from a document type, pass it straight through —
@@ -400,7 +422,8 @@ Execute predefined document processing workflows.
 
 ```typescript
 // Start async step execution
-const status = await client.steps.runAsync('step_invoice_extraction', {
+const status = await client.steps.runAsync({
+  stepId: 'step_invoice_extraction',
   file: readFileSync('invoice.pdf'),
 });
 
@@ -408,7 +431,11 @@ const status = await client.steps.runAsync('step_invoice_extraction', {
 const final = await status.wait({
   onStatus: (s) => console.log(`Status: ${s.status}`),
 });
-console.log(final.data);
+if (final.status === 'SUCCESS') {
+  console.log(final.data);
+} else {
+  console.error('Step failed:', final.error);
+}
 ```
 
 ### Knowledge Bases
@@ -417,7 +444,8 @@ Manage document collections with semantic search capabilities.
 
 ```typescript
 // List knowledge bases
-for await (const kb of client.knowledgeBases.list().autoPagingIter()) {
+const kbPage = await client.knowledgeBases.list();
+for await (const kb of kbPage.autoPagingIter()) {
   console.log(`${kb.name}: ${kb.documentCount} documents`);
 }
 
@@ -455,20 +483,27 @@ await client.knowledgeBases.delete(kb.id);
 Resources that return lists support pagination:
 
 ```typescript
-// Get the first page
-const page = await client.documentTypes.list({ limit: 10 });
+// Get the first page (list() returns a Promise<Page<T>>)
+const firstPage = await client.documentTypes.list({ limit: 10 });
+console.log(firstPage.data.length, firstPage.hasNextPage());
 
-// Iterate through all pages
-for await (const page of client.documentTypes.list().iterPages()) {
+// Pick one of the following ways to walk the rest: each one fetches every
+// remaining page again.
+
+// a) Iterate through all pages, starting from this one
+for await (const page of firstPage.iterPages()) {
   for (const docType of page.data) {
     console.log(docType.name);
   }
 }
 
-// Auto-iterate through all items
-for await (const docType of client.documentTypes.list().autoPagingIter()) {
+// b) Or auto-iterate through all items across pages
+for await (const docType of firstPage.autoPagingIter()) {
   console.log(docType.name);
 }
+
+// c) Or collect items into an array, up to a limit
+const all = await firstPage.toArray({ limit: 100 });
 ```
 
 ## Raw Response Access
@@ -483,10 +518,10 @@ const response = await client.convert.withRawResponse.run({
 
 console.log(`Status: ${response.statusCode}`);
 console.log(`Headers:`, response.headers);
-console.log(`Request ID: ${response.headers['x-request-id']}`);
+console.log(`Request ID: ${response.headers.get('x-request-id')}`); // headers is a fetch Headers object
 
-// Parse the response body
-const result = response.parse();
+// Parse the response body (async, cached after the first call)
+const result = await response.parse();
 console.log(result.data);
 ```
 
@@ -508,13 +543,21 @@ const final = await status.wait({
   timeout: 300_000,    // maximum wait time in ms
 });
 
-if (final.isSuccess()) {
+if (final.status === 'SUCCESS') {
   console.log('Conversion complete!');
   console.log(final.data);
-} else if (final.isFailed()) {
+} else if (final.status === 'ERROR') {
   console.error(`Conversion failed: ${final.error}`);
 }
 ```
+
+`wait()` resolves with the final status object once the operation reaches
+`SUCCESS` or `ERROR`; check `status` (or use `isConversionSuccess()` /
+`isConversionError()`) to tell them apart. It rejects with an `APITimeoutError`
+when `timeout` has elapsed; the check runs after each poll interval, so the
+rejection can come up to one `pollInterval` later. It also rejects with any
+error raised by a status poll itself (for example `NotFoundError`, a
+`RateLimitError` after retries, or `APIConnectionError`).
 
 ## Type Safety
 
@@ -523,6 +566,7 @@ The SDK is fully typed with TypeScript, providing complete type safety:
 ```typescript
 import DocuTray from 'docutray';
 import type { ConversionResult, DocumentType } from 'docutray';
+import { readFileSync } from 'fs';
 
 const client = new DocuTray({ apiKey: 'your-api-key' });
 
