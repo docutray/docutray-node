@@ -236,7 +236,7 @@ List and retrieve document type definitions.
 // List all document types
 const page = await client.documentTypes.list();
 for (const docType of page.data) {
-  console.log(`${docType.code}: ${docType.name}`);
+  console.log(`${docType.codeType}: ${docType.name}`);
 }
 
 // Search document types
@@ -400,7 +400,8 @@ Execute predefined document processing workflows.
 
 ```typescript
 // Start async step execution
-const status = await client.steps.runAsync('step_invoice_extraction', {
+const status = await client.steps.runAsync({
+  stepId: 'step_invoice_extraction',
   file: readFileSync('invoice.pdf'),
 });
 
