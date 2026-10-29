@@ -253,18 +253,28 @@ export class KnowledgeBases extends APIResource {
 
   /**
    * Regenerates the embeddings of the knowledge base's documents. The call
-   * waits until the sync finishes.
+   * waits until the sync finishes, which can take minutes for large knowledge
+   * bases: pass a longer `timeout` in `options` when needed.
+   *
+   * Unlike other methods, `sync()` is not retried by default (`maxRetries: 0`):
+   * a timed-out request may still be running on the server, and retrying it
+   * would start the whole sync again. Pass `maxRetries` to opt in.
    *
    * @param id - The knowledge base identifier.
    * @param params - Optional sync parameters.
    * @param options - Per-request options.
    * @returns The sync operation result.
+   *
+   * @example
+   * ```ts
+   * const result = await client.knowledgeBases.sync(knowledgeBaseId, { force: true }, { timeout: 600_000 });
+   * ```
    */
   async sync(id: string, params?: KnowledgeBaseSyncParams, options?: Omit<RequestOptions, 'raw'>): Promise<SyncResult> {
     const response = await this._client.post<KnowledgeBaseEnvelope<SyncResult>>(
       `/api/knowledge-bases/${encodeURIComponent(id)}/sync`,
       params ?? {},
-      options,
+      syncOptions(options),
     ) as KnowledgeBaseEnvelope<SyncResult>;
     return response.data;
   }
@@ -466,7 +476,7 @@ class KnowledgeBasesWithRawResponse {
     return this._client.post<KnowledgeBaseEnvelope<SyncResult>>(
       `/api/knowledge-bases/${encodeURIComponent(id)}/sync`,
       params ?? {},
-      { ...options, raw: true },
+      { ...syncOptions(options), raw: true },
     ) as Promise<RawResponse<KnowledgeBaseEnvelope<SyncResult>>>;
   }
 }
@@ -518,4 +528,14 @@ class KnowledgeBaseDocumentsWithRawResponse {
       { ...options, raw: true },
     ) as Promise<RawResponse<void>>;
   }
+}
+
+/**
+ * `sync()` is not retried by default: a timed-out sync may still be running,
+ * and a retry would run it again.
+ *
+ * @internal
+ */
+function syncOptions(options?: Omit<RequestOptions, 'raw'>): Omit<RequestOptions, 'raw'> {
+  return { ...options, maxRetries: options?.maxRetries ?? 0 };
 }

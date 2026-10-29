@@ -142,6 +142,36 @@ describe('KnowledgeBases', () => {
       expect(captured.body).toEqual({ force: true });
     });
 
+    it('does not retry by default, since a timed-out sync may still be running', async () => {
+      let calls = 0;
+      server.use(
+        http.post(`${kbBase}/kb1/sync`, () => {
+          calls++;
+          return HttpResponse.json({ message: 'Internal server error' }, { status: 500 });
+        }),
+      );
+
+      await expect(createKB().sync('kb1')).rejects.toThrow();
+      expect(calls).toBe(1);
+    });
+
+    it('retries when maxRetries is passed', async () => {
+      let calls = 0;
+      server.use(
+        http.post(`${kbBase}/kb1/sync`, () => {
+          calls++;
+          return calls === 1
+            ? HttpResponse.json({ message: 'Internal server error' }, { status: 500 })
+            : HttpResponse.json({ data: mockSyncResult });
+        }),
+      );
+
+      const result = await createKB().sync('kb1', undefined, { maxRetries: 1 });
+
+      expect(result.status).toBe('completed');
+      expect(calls).toBe(2);
+    });
+
     it('sends an empty body without options', async () => {
       const captured = captureBody('post', `${kbBase}/kb1/sync`, { data: mockSyncResult });
 

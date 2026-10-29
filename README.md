@@ -488,6 +488,10 @@ for (const item of results.data) {
   console.log(`${(item.similarity * 100).toFixed(1)}%: ${item.document.content.title}`);
 }
 
+// Regenerate embeddings. sync() waits until it finishes and is not retried
+// by default; pass a longer timeout for large knowledge bases
+await client.knowledgeBases.sync(kb.id, { force: true }, { timeout: 600_000 });
+
 // Delete knowledge base (soft delete: update(kb.id, { isActive: true }) restores it)
 await client.knowledgeBases.delete(kb.id);
 ```
