@@ -249,10 +249,10 @@ for (const docType of page.data) {
 const searchResults = await client.documentTypes.list({ search: 'invoice' });
 
 // Get a specific document type by its id
-const docType = await client.documentTypes.get('cmditbp6h000zrq01jl0whzcr');
+const docType = await client.documentTypes.get('YOUR_DOCUMENT_TYPE_ID');
 
 // Validate data against a document type (JSON Schema + stored DSL rules)
-const validation = await client.documentTypes.validate('cmditbp6h000zrq01jl0whzcr', {
+const validation = await client.documentTypes.validate('YOUR_DOCUMENT_TYPE_ID', {
   invoice_number: 'INV-001',
   total: 100.0,
 });
@@ -262,15 +262,18 @@ if (validation.valid) {
 ```
 
 > `get()`, `update()` and `validate()` take the document type's internal `id`
-> (a cuid such as `cmditbp6h000zrq01jl0whzcr`), not its `codeType`. The SDK does
+> (a cuid such as `cm…`), not its `codeType`. The SDK does
 > not resolve codes: passing a `codeType` such as `'invoice'` returns a
 > `NotFoundError` (404). Resolve the code to an id with `list()` first:
 >
 > ```typescript
-> const { data } = await client.documentTypes.list({ search: 'invoice' });
-> const invoiceType = data.find((dt) => dt.codeType === 'invoice');
-> if (invoiceType) {
->   const docType = await client.documentTypes.get(invoiceType.id);
+> // `search` also matches names and descriptions, so check every page
+> const matches = await client.documentTypes.list({ search: 'invoice' });
+> for await (const dt of matches.autoPagingIter()) {
+>   if (dt.codeType === 'invoice') {
+>     const docType = await client.documentTypes.get(dt.id);
+>     break;
+>   }
 > }
 > ```
 
@@ -284,12 +287,12 @@ the type has no rules); `list()` does not include it.
 
 ```typescript
 // Save rules (64 KiB UTF-8 maximum)
-await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', {
+await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', {
   dslRules: 'define expected sum field.subtotal field.tax\nfield.total equalsWithPrecision(calculated.expected, 2)',
 });
 
 // In update(), omitting dslRules keeps the stored rules; null or '' clears them
-await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', { dslRules: null });
+await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', { dslRules: null });
 ```
 
 Test rules without saving them by passing `dslRules` to `validate()` (dry-run).
@@ -298,7 +301,7 @@ The JSON Schema still runs; `null` or `''` tests without rules. Without
 
 ```typescript
 const result = await client.documentTypes.validate(
-  'cmditbp6h000zrq01jl0whzcr',
+  'YOUR_DOCUMENT_TYPE_ID',
   { subtotal: 1000, tax: 190, total: 1290 },
   { dslRules: 'field.total lessThan(1000)' },
 );
@@ -324,7 +327,7 @@ of each problem. Nothing is saved.
 import { DSLValidationError } from 'docutray';
 
 try {
-  await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', { dslRules: 'field.total greaterThen 0' });
+  await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', { dslRules: 'field.total greaterThen 0' });
 } catch (error) {
   if (error instanceof DSLValidationError) {
     for (const d of error.diagnostics) {
@@ -347,7 +350,7 @@ CSV/Excel columns used by tray export. It comes in two formats — legacy
 import { isMultiSheetConversionSpec } from 'docutray';
 
 // Read the stored spec (null when the document type has none)
-const docType = await client.documentTypes.get('cmditbp6h000zrq01jl0whzcr');
+const docType = await client.documentTypes.get('YOUR_DOCUMENT_TYPE_ID');
 if (isMultiSheetConversionSpec(docType.conversionSpec)) {
   console.log(docType.conversionSpec.sheets.map((sheet) => sheet.name));
 }
@@ -367,7 +370,7 @@ await client.documentTypes.create({
 });
 
 // Update with a multi-sheet spec
-await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', {
+await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', {
   conversionSpec: {
     sheets: [
       {
@@ -386,7 +389,7 @@ await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', {
 });
 
 // Omit conversionSpec to leave the stored spec untouched; pass null to clear it
-await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', { conversionSpec: null });
+await client.documentTypes.update('YOUR_DOCUMENT_TYPE_ID', { conversionSpec: null });
 ```
 
 When forwarding a spec read from a document type, pass it straight through —
@@ -428,7 +431,11 @@ const status = await client.steps.runAsync({
 const final = await status.wait({
   onStatus: (s) => console.log(`Status: ${s.status}`),
 });
-console.log(final.data);
+if (final.status === 'SUCCESS') {
+  console.log(final.data);
+} else {
+  console.error('Step failed:', final.error);
+}
 ```
 
 ### Knowledge Bases
@@ -480,19 +487,22 @@ Resources that return lists support pagination:
 const firstPage = await client.documentTypes.list({ limit: 10 });
 console.log(firstPage.data.length, firstPage.hasNextPage());
 
-// Iterate through all pages, starting from this one
+// Pick one of the following ways to walk the rest: each one fetches every
+// remaining page again.
+
+// a) Iterate through all pages, starting from this one
 for await (const page of firstPage.iterPages()) {
   for (const docType of page.data) {
     console.log(docType.name);
   }
 }
 
-// Auto-iterate through all items across pages
+// b) Or auto-iterate through all items across pages
 for await (const docType of firstPage.autoPagingIter()) {
   console.log(docType.name);
 }
 
-// Or collect items into an array, up to a limit
+// c) Or collect items into an array, up to a limit
 const all = await firstPage.toArray({ limit: 100 });
 ```
 
@@ -543,8 +553,11 @@ if (final.status === 'SUCCESS') {
 
 `wait()` resolves with the final status object once the operation reaches
 `SUCCESS` or `ERROR`; check `status` (or use `isConversionSuccess()` /
-`isConversionError()`) to tell them apart. It throws an `APITimeoutError` if
-`timeout` elapses first.
+`isConversionError()`) to tell them apart. It rejects with an `APITimeoutError`
+when `timeout` has elapsed; the check runs after each poll interval, so the
+rejection can come up to one `pollInterval` later. It also rejects with any
+error raised by a status poll itself (for example `NotFoundError`, a
+`RateLimitError` after retries, or `APIConnectionError`).
 
 ## Type Safety
 

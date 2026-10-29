@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - README code samples now match the implementation (#26): `docType.codeType` instead of `docType.code`; `steps.runAsync({ stepId, ... })` instead of `runAsync(stepId, params)`; `status.conversion_id` and `final.status === 'SUCCESS'` instead of `conversionId` and the nonexistent `isSuccess()`/`isFailed()`; `identify.run()` read through `document_type`; `await list()` before `iterPages()`/`autoPagingIter()`; `response.headers.get()` and `await response.parse()` for raw responses.
-- README and `examples/document-types.ts` use a cuid-shaped document type id instead of `dt_`-prefixed placeholders, and explain that `get()`, `update()` and `validate()` take the id, not the `codeType` (resolve it with `list()` first; a code returns 404).
+- README and `examples/document-types.ts` use a `YOUR_DOCUMENT_TYPE_ID` placeholder instead of `dt_`-prefixed ones, and explain that `get()`, `update()` and `validate()` take the internal id (a cuid), not the `codeType` (resolve it with `list()` first; a code returns 404). The JSDoc of those methods says the same.
 
 ## [0.1.5] - 2026-08-11
 
