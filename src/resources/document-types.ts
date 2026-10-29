@@ -20,8 +20,8 @@ import type { RawResponse } from '../core/raw-response.js';
  *   console.log(dt.name, dt.codeType);
  * }
  *
- * // Get a specific document type
- * const dt = await client.documentTypes.get('dt_abc123');
+ * // Get a specific document type by its internal id (not its codeType)
+ * const dt = await client.documentTypes.get(page.data[0].id);
  * ```
  */
 export class DocumentTypes extends APIResource {
@@ -49,7 +49,7 @@ export class DocumentTypes extends APIResource {
   /**
    * Retrieves a single document type by ID.
    *
-   * @param id - The document type identifier.
+   * @param id - The document type's internal id (a cuid), not its `codeType`. Resolve a code with {@link DocumentTypes.list} first; passing a code returns a `NotFoundError`.
    * @param options - Per-request options.
    * @returns The document type definition.
    */
@@ -82,7 +82,7 @@ export class DocumentTypes extends APIResource {
    *
    * Note: `codeType` cannot be changed after creation.
    *
-   * @param id - The document type identifier.
+   * @param id - The document type's internal id (a cuid), not its `codeType`. Resolve a code with {@link DocumentTypes.list} first; passing a code returns a `NotFoundError`.
    * @param params - Fields to update.
    * @param options - Per-request options.
    * @returns The updated document type.
@@ -109,7 +109,7 @@ export class DocumentTypes extends APIResource {
    * with both `data` and `dslRules` at its root is reserved by the API for
    * dry-run requests, so validate such a document by passing `dslRules`.
    *
-   * @param id - The document type identifier.
+   * @param id - The document type's internal id (a cuid), not its `codeType`. Resolve a code with {@link DocumentTypes.list} first; passing a code returns a `NotFoundError`.
    * @param data - The document data to validate (e.g. the `data` of a conversion).
    * @param params - Optional temporary DSL rules.
    * @param options - Per-request options.
@@ -119,7 +119,7 @@ export class DocumentTypes extends APIResource {
    *
    * @example
    * ```ts
-   * const result = await client.documentTypes.validate('dt_invoice', extracted, {
+   * const result = await client.documentTypes.validate(documentTypeId, extracted, {
    *   dslRules: 'field.total greaterThan 0',
    * });
    * if (!result.valid) {
