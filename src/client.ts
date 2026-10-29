@@ -59,6 +59,7 @@ export class DocuTray {
    * ```
    */
   constructor(options: Partial<ClientOptions> = {}) {
+    assertKnownOptions(options);
     const apiKey = options.apiKey ?? readEnv('DOCUTRAY_API_KEY');
     if (!apiKey) {
       throw new DocuTrayError(
@@ -74,4 +75,31 @@ export class DocuTray {
     this.steps = new Steps(this._client);
     this.knowledgeBases = new KnowledgeBases(this._client);
   }
+}
+
+const CLIENT_OPTION_KEYS: ReadonlySet<string> = new Set<keyof ClientOptions>([
+  'apiKey',
+  'baseURL',
+  'timeout',
+  'maxRetries',
+  'fetch',
+]);
+
+/**
+ * Rejects option keys the client does not support. Ignoring a misspelled key
+ * such as `baseUrl` would silently send requests, and the API key, to the
+ * default production URL.
+ *
+ * @internal
+ */
+function assertKnownOptions(options: object): void {
+  const unknown = Object.keys(options).filter((key) => !CLIENT_OPTION_KEYS.has(key));
+  if (unknown.length === 0) return;
+  const hints = unknown.map((key) => {
+    const match = [...CLIENT_OPTION_KEYS].find((known) => known.toLowerCase() === key.toLowerCase());
+    return match ? `${key} (did you mean ${match}?)` : key;
+  });
+  throw new DocuTrayError(
+    `Unknown DocuTray client option(s): ${hints.join(', ')}. Supported options: ${[...CLIENT_OPTION_KEYS].join(', ')}.`,
+  );
 }
