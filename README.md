@@ -240,13 +240,13 @@ for (const docType of page.data) {
 }
 
 // Search document types
-const page = await client.documentTypes.list({ search: 'invoice' });
+const searchResults = await client.documentTypes.list({ search: 'invoice' });
 
-// Get a specific document type
-const docType = await client.documentTypes.get('dt_invoice');
+// Get a specific document type by its id
+const docType = await client.documentTypes.get('cmditbp6h000zrq01jl0whzcr');
 
 // Validate data against a document type (JSON Schema + stored DSL rules)
-const validation = await client.documentTypes.validate('dt_invoice', {
+const validation = await client.documentTypes.validate('cmditbp6h000zrq01jl0whzcr', {
   invoice_number: 'INV-001',
   total: 100.0,
 });
@@ -254,6 +254,19 @@ if (validation.valid) {
   console.log('Data is valid!');
 }
 ```
+
+> `get()`, `update()` and `validate()` take the document type's internal `id`
+> (a cuid such as `cmditbp6h000zrq01jl0whzcr`), not its `codeType`. The SDK does
+> not resolve codes: passing a `codeType` such as `'invoice'` returns a
+> `NotFoundError` (404). Resolve the code to an id with `list()` first:
+>
+> ```typescript
+> const { data } = await client.documentTypes.list({ search: 'invoice' });
+> const invoiceType = data.find((dt) => dt.codeType === 'invoice');
+> if (invoiceType) {
+>   const docType = await client.documentTypes.get(invoiceType.id);
+> }
+> ```
 
 #### Validation rules (DSL)
 
@@ -265,12 +278,12 @@ the type has no rules); `list()` does not include it.
 
 ```typescript
 // Save rules (64 KiB UTF-8 maximum)
-await client.documentTypes.update('dt_invoice', {
+await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', {
   dslRules: 'define expected sum field.subtotal field.tax\nfield.total equalsWithPrecision(calculated.expected, 2)',
 });
 
 // In update(), omitting dslRules keeps the stored rules; null or '' clears them
-await client.documentTypes.update('dt_invoice', { dslRules: null });
+await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', { dslRules: null });
 ```
 
 Test rules without saving them by passing `dslRules` to `validate()` (dry-run).
@@ -279,7 +292,7 @@ The JSON Schema still runs; `null` or `''` tests without rules. Without
 
 ```typescript
 const result = await client.documentTypes.validate(
-  'dt_invoice',
+  'cmditbp6h000zrq01jl0whzcr',
   { subtotal: 1000, tax: 190, total: 1290 },
   { dslRules: 'field.total lessThan(1000)' },
 );
@@ -305,7 +318,7 @@ of each problem. Nothing is saved.
 import { DSLValidationError } from 'docutray';
 
 try {
-  await client.documentTypes.update('dt_invoice', { dslRules: 'field.total greaterThen 0' });
+  await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', { dslRules: 'field.total greaterThen 0' });
 } catch (error) {
   if (error instanceof DSLValidationError) {
     for (const d of error.diagnostics) {
@@ -328,7 +341,7 @@ CSV/Excel columns used by tray export. It comes in two formats — legacy
 import { isMultiSheetConversionSpec } from 'docutray';
 
 // Read the stored spec (null when the document type has none)
-const docType = await client.documentTypes.get('dt_invoice');
+const docType = await client.documentTypes.get('cmditbp6h000zrq01jl0whzcr');
 if (isMultiSheetConversionSpec(docType.conversionSpec)) {
   console.log(docType.conversionSpec.sheets.map((sheet) => sheet.name));
 }
@@ -348,7 +361,7 @@ await client.documentTypes.create({
 });
 
 // Update with a multi-sheet spec
-await client.documentTypes.update('dt_invoice', {
+await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', {
   conversionSpec: {
     sheets: [
       {
@@ -367,7 +380,7 @@ await client.documentTypes.update('dt_invoice', {
 });
 
 // Omit conversionSpec to leave the stored spec untouched; pass null to clear it
-await client.documentTypes.update('dt_invoice', { conversionSpec: null });
+await client.documentTypes.update('cmditbp6h000zrq01jl0whzcr', { conversionSpec: null });
 ```
 
 When forwarding a spec read from a document type, pass it straight through —

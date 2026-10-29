@@ -73,7 +73,9 @@ async function validateDocumentType(id: string) {
   console.log(`Dry-run with temporary rules: ${dryRun.valid ? 'valid' : 'invalid'}`);
 }
 
-// Uncomment the function you want to run:
+// Uncomment the function you want to run.
+// get() and validate() take the document type id (a cuid), not its codeType:
+// find the id with listDocumentTypes() first.
 // listDocumentTypes();
-// getDocumentType('dt_abc123');
-// validateDocumentType('dt_abc123');
+// getDocumentType('cmditbp6h000zrq01jl0whzcr');
+// validateDocumentType('cmditbp6h000zrq01jl0whzcr');
