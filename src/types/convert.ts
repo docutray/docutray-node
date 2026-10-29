@@ -128,10 +128,12 @@ export interface ConvertParams {
   contentType?: ImageContentType;
   /** Filename hint for content type detection. */
   filename?: string;
-  /** When `true`, the API waits for conversion to complete before responding. */
-  wait?: boolean;
-  /** URL to receive a webhook notification when conversion completes. */
-  webhookUrl?: string;
+  /**
+   * Metadata to attach to the document (for example your own ids). It is
+   * echoed in status responses and webhooks. With file uploads, values must
+   * be strings, numbers, booleans or `null`.
+   */
+  documentMetadata?: Record<string, unknown>;
 }
 
 /**

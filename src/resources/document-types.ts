@@ -55,7 +55,7 @@ export class DocumentTypes extends APIResource {
    */
   async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<DocumentType> {
     const response = await this._client.get<{ data: DocumentType }>(
-      `/api/document-types/${id}`,
+      `/api/document-types/${encodeURIComponent(id)}`,
       options,
     ) as { data: DocumentType };
     return response.data;
@@ -89,7 +89,7 @@ export class DocumentTypes extends APIResource {
    */
   async update(id: string, params: DocumentTypeUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<DocumentType> {
     const response = await this._client.put<{ data: DocumentType }>(
-      `/api/document-types/${id}`,
+      `/api/document-types/${encodeURIComponent(id)}`,
       params,
       options,
     ) as { data: DocumentType };
@@ -134,7 +134,7 @@ export class DocumentTypes extends APIResource {
     options?: Omit<RequestOptions, 'raw'>,
   ): Promise<ValidationResult> {
     return this._client.post<ValidationResult>(
-      `/api/document-types/${id}/validate`,
+      `/api/document-types/${encodeURIComponent(id)}/validate`,
       validateBody(data, params),
       options,
     ) as Promise<ValidationResult>;
@@ -146,6 +146,15 @@ export class DocumentTypes extends APIResource {
   get withRawResponse(): DocumentTypesWithRawResponse {
     return new DocumentTypesWithRawResponse(this._client);
   }
+}
+
+/**
+ * Body of the single-document-type endpoints (`GET`, `POST` and `PUT`), which
+ * wrap the document type in a `data` envelope. The regular methods unwrap it;
+ * `withRawResponse` returns it as is.
+ */
+export interface DocumentTypeEnvelope {
+  data: DocumentType;
 }
 
 /** @internal */
@@ -164,27 +173,27 @@ class DocumentTypesWithRawResponse {
     ) as Promise<RawResponse<PageResponse<DocumentType>>>;
   }
 
-  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<DocumentType>> {
-    return this._client.get<DocumentType>(
-      `/api/document-types/${id}`,
+  async get(id: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<DocumentTypeEnvelope>> {
+    return this._client.get<DocumentTypeEnvelope>(
+      `/api/document-types/${encodeURIComponent(id)}`,
       { ...options, raw: true },
-    ) as Promise<RawResponse<DocumentType>>;
+    ) as Promise<RawResponse<DocumentTypeEnvelope>>;
   }
 
-  async create(params: DocumentTypeCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<DocumentType>> {
-    return this._client.post<DocumentType>(
+  async create(params: DocumentTypeCreateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<DocumentTypeEnvelope>> {
+    return this._client.post<DocumentTypeEnvelope>(
       '/api/document-types',
       params,
       { ...options, raw: true },
-    ) as Promise<RawResponse<DocumentType>>;
+    ) as Promise<RawResponse<DocumentTypeEnvelope>>;
   }
 
-  async update(id: string, params: DocumentTypeUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<DocumentType>> {
-    return this._client.put<DocumentType>(
-      `/api/document-types/${id}`,
+  async update(id: string, params: DocumentTypeUpdateParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<DocumentTypeEnvelope>> {
+    return this._client.put<DocumentTypeEnvelope>(
+      `/api/document-types/${encodeURIComponent(id)}`,
       params,
       { ...options, raw: true },
-    ) as Promise<RawResponse<DocumentType>>;
+    ) as Promise<RawResponse<DocumentTypeEnvelope>>;
   }
 
   async validate(
@@ -194,7 +203,7 @@ class DocumentTypesWithRawResponse {
     options?: Omit<RequestOptions, 'raw'>,
   ): Promise<RawResponse<ValidationResult>> {
     return this._client.post<ValidationResult>(
-      `/api/document-types/${id}/validate`,
+      `/api/document-types/${encodeURIComponent(id)}/validate`,
       validateBody(data, params),
       { ...options, raw: true },
     ) as Promise<RawResponse<ValidationResult>>;

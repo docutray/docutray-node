@@ -79,6 +79,34 @@ describe('Convert', () => {
       expect(receivedBody.image_content_type).toBe('application/pdf');
     });
 
+    it('sends document_metadata and never wait or webhook_url', async () => {
+      let form: FormData | undefined;
+      let json: Record<string, unknown> = {};
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/convert`, async ({ request }) => {
+          if ((request.headers.get('content-type') ?? '').includes('multipart')) {
+            form = await request.formData();
+          } else {
+            json = await request.json() as Record<string, unknown>;
+          }
+          return HttpResponse.json(mockConversionResult);
+        }),
+      );
+
+      const convert = createConvert();
+      await convert.run({ documentTypeCode: 'invoice', file: Buffer.from('pdf'), filename: 'a.pdf', documentMetadata: { ref: 'A-1' } });
+      await convert.run({ documentTypeCode: 'invoice', url: 'https://example.com/doc.pdf', documentMetadata: { ref: 'A-1' } });
+
+      expect(JSON.parse(String(form?.get('document_metadata')))).toEqual({ ref: 'A-1' });
+      expect(form?.has('wait')).toBe(false);
+      expect(form?.has('webhook_url')).toBe(false);
+      expect(json).toEqual({
+        image_url: 'https://example.com/doc.pdf',
+        document_type_code: 'invoice',
+        document_metadata: { ref: 'A-1' },
+      });
+    });
+
     it('throws when no file source is provided', async () => {
       const convert = createConvert();
       await expect(
@@ -133,6 +161,21 @@ describe('Convert', () => {
       const result = await status.wait({ pollInterval: 10 });
       expect(result.status).toBe('SUCCESS');
       expect(pollCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it('wait() resolves with the ERROR status instead of throwing', async () => {
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/convert-async`, () => HttpResponse.json(mockConversionPending)),
+        http.get(`${TEST_BASE_URL}/api/convert-async/status/conv-123`, () =>
+          HttpResponse.json({ ...mockConversionPending, status: 'ERROR', error: 'Conversion timeout exceeded' }),
+        ),
+      );
+
+      const status = await createConvert().runAsync({ documentTypeCode: 'invoice', url: 'https://example.com/doc.pdf' });
+      const result = await status.wait({ pollInterval: 10 });
+
+      expect(result.status).toBe('ERROR');
+      expect(result.error).toBe('Conversion timeout exceeded');
     });
   });
 

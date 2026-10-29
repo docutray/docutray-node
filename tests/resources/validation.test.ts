@@ -135,7 +135,7 @@ describe('dslRules on document types', () => {
 });
 
 describe('documentTypes.validate()', () => {
-  function captureValidate(response: unknown = dryRunResult): { body: () => unknown } {
+  function captureValidate(response: ValidationResult = dryRunResult): { body: () => unknown } {
     let receivedBody: unknown;
     server.use(
       http.post(`${TEST_BASE_URL}/api/document-types/dt-789/validate`, async ({ request }) => {

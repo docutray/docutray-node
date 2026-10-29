@@ -30,6 +30,8 @@ export {
 export type {
   WebhookEventType,
   ConversionWebhookPayload,
+  IdentificationWebhookPayload,
+  StepWebhookPayload,
 } from './webhook.js';
 
 // Convert types
@@ -54,6 +56,7 @@ export type {
   IdentificationStatusType,
   DocumentTypeMatch,
   IdentificationResult,
+  IdentificationEnqueued,
   IdentificationStatus,
   IdentifyParams,
 } from './identify.js';
@@ -87,6 +90,8 @@ export {
 // Step types
 export type {
   StepExecutionStatusType,
+  StepExecutionEnqueued,
+  StepExecutionError,
   StepExecutionStatus,
   StepsRunParams,
 } from './step.js';
@@ -100,6 +105,7 @@ export {
 export type {
   KnowledgeBase,
   KnowledgeBaseDocument,
+  EmbeddingStatus,
   SearchResultItem,
   SearchResult,
   SyncResult,

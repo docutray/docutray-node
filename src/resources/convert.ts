@@ -5,16 +5,15 @@ import { waitForCompletion } from '../core/polling.js';
 import { prepareFileUpload, prepareUrlUpload, prepareBase64Upload } from '../lib/files.js';
 import {
   isConversionComplete,
-  isConversionError,
 } from '../types/convert.js';
 import type { ConversionResult, ConversionStatus, ConvertParams } from '../types/convert.js';
 import type { RequestOptions } from '../core/types.js';
 import type { RawResponse } from '../core/raw-response.js';
-import type { PollOptions } from '../core/polling.js';
+import type { WaitOptions } from '../core/polling.js';
 
 /** @internal */
 type ConversionStatusWithWait = ConversionStatus & {
-  wait: (pollOptions?: Partial<PollOptions<ConversionStatus>>) => Promise<ConversionStatus>;
+  wait: (pollOptions?: WaitOptions<ConversionStatus>) => Promise<ConversionStatus>;
 };
 
 /**
@@ -49,7 +48,7 @@ export class Convert extends APIResource {
    * @throws {@link DocuTrayError} if no file source is provided.
    */
   async run(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionResult> {
-    return this._run(params, '/api/convert', options) as unknown as Promise<ConversionResult>;
+    return this._run<ConversionResult>(params, '/api/convert', options) as Promise<ConversionResult>;
   }
 
   /**
@@ -57,7 +56,10 @@ export class Convert extends APIResource {
    *
    * @param params - Conversion parameters including document type and file source.
    * @param options - Per-request options.
-   * @returns The initial status with a `wait()` method that polls until completion.
+   * @returns The initial status with a `wait()` method that polls until the operation
+   *   reaches `SUCCESS` or `ERROR` and resolves with that final status. `wait()` does
+   *   not throw on `ERROR`: check `status` (and `error`) on the result. It rejects
+   *   only on timeout (`APITimeoutError`) or when a status request fails.
    * @throws {@link DocuTrayError} if no file source is provided.
    *
    * @example
@@ -72,14 +74,12 @@ export class Convert extends APIResource {
    * ```
    */
   async runAsync(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionStatusWithWait> {
-    const status = await this._run(params, '/api/convert-async', options) as ConversionStatus;
+    const status = await this._run<ConversionStatus>(params, '/api/convert-async', options) as ConversionStatus;
     return Object.assign(status, {
-      wait: (pollOptions?: Partial<PollOptions<ConversionStatus>>) =>
+      wait: (pollOptions?: WaitOptions<ConversionStatus>) =>
         waitForCompletion<ConversionStatus>({
           getStatus: () => this.getStatus(status.conversion_id, options),
           isComplete: isConversionComplete,
-          isFailed: isConversionError,
-          getError: (s) => s.error ?? 'Conversion failed',
           ...pollOptions,
         }),
     });
@@ -94,7 +94,7 @@ export class Convert extends APIResource {
    */
   async getStatus(conversionId: string, options?: Omit<RequestOptions, 'raw'>): Promise<ConversionStatus> {
     return this._client.get<ConversionStatus>(
-      `/api/convert-async/status/${conversionId}`,
+      `/api/convert-async/status/${encodeURIComponent(conversionId)}`,
       options,
     ) as Promise<ConversionStatus>;
   }
@@ -117,19 +117,18 @@ export class Convert extends APIResource {
   }
 
   /** @internal */
-  protected async _run(
+  protected async _run<T>(
     params: ConvertParams,
     path: string,
     options?: RequestOptions,
-  ): Promise<ConversionStatus | RawResponse<ConversionStatus>> {
-    const { file, url, base64, contentType, filename, documentTypeCode, ...rest } = params;
+  ): Promise<T | RawResponse<T>> {
+    const { file, url, base64, contentType, filename, documentTypeCode, documentMetadata } = params;
 
     if (file) {
       const { formData } = prepareFileUpload(file, { filename, contentType });
       formData.append('document_type_code', documentTypeCode);
-      if (rest.webhookUrl) formData.append('webhook_url', rest.webhookUrl);
-      if (rest.wait !== undefined) formData.append('wait', String(rest.wait));
-      return this._client.post<ConversionStatus>(path, formData, options);
+      if (documentMetadata) formData.append('document_metadata', JSON.stringify(documentMetadata));
+      return this._client.post<T>(path, formData, options);
     }
 
     if (url) {
@@ -137,9 +136,8 @@ export class Convert extends APIResource {
         ...prepareUrlUpload(url, contentType),
         document_type_code: documentTypeCode,
       };
-      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
-      if (rest.wait !== undefined) body.wait = rest.wait;
-      return this._client.post<ConversionStatus>(path, body, options);
+      if (documentMetadata) body.document_metadata = documentMetadata;
+      return this._client.post<T>(path, body, options);
     }
 
     if (base64) {
@@ -147,9 +145,8 @@ export class Convert extends APIResource {
         ...prepareBase64Upload(base64, contentType),
         document_type_code: documentTypeCode,
       };
-      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
-      if (rest.wait !== undefined) body.wait = rest.wait;
-      return this._client.post<ConversionStatus>(path, body, options);
+      if (documentMetadata) body.document_metadata = documentMetadata;
+      return this._client.post<T>(path, body, options);
     }
 
     throw new DocuTrayError('Must provide file, url, or base64');
@@ -157,11 +154,11 @@ export class Convert extends APIResource {
 }
 
 /** @internal */
-type ConvertRunFn = (
+type ConvertRunFn = <T>(
   params: ConvertParams,
   path: string,
   options?: RequestOptions,
-) => Promise<ConversionStatus | RawResponse<ConversionStatus>>;
+) => Promise<T | RawResponse<T>>;
 
 /** @internal */
 class ConvertWithRawResponse {
@@ -174,16 +171,16 @@ class ConvertWithRawResponse {
   }
 
   async run(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionResult>> {
-    return this._run(params, '/api/convert', { ...options, raw: true }) as unknown as Promise<RawResponse<ConversionResult>>;
+    return this._run<ConversionResult>(params, '/api/convert', { ...options, raw: true }) as Promise<RawResponse<ConversionResult>>;
   }
 
   async runAsync(params: ConvertParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionStatus>> {
-    return this._run(params, '/api/convert-async', { ...options, raw: true }) as Promise<RawResponse<ConversionStatus>>;
+    return this._run<ConversionStatus>(params, '/api/convert-async', { ...options, raw: true }) as Promise<RawResponse<ConversionStatus>>;
   }
 
   async getStatus(conversionId: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<ConversionStatus>> {
     return this._client.get<ConversionStatus>(
-      `/api/convert-async/status/${conversionId}`,
+      `/api/convert-async/status/${encodeURIComponent(conversionId)}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<ConversionStatus>>;
   }

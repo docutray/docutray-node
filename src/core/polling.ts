@@ -23,12 +23,25 @@ export interface PollOptions<T> {
 }
 
 /**
+ * Options accepted by the `wait()` method of `runAsync()` results.
+ *
+ * `wait()` treats both success and failure as terminal and resolves with the
+ * final status in either case, so the failure hooks of {@link PollOptions}
+ * do not apply.
+ */
+export type WaitOptions<T> = Omit<Partial<PollOptions<T>>, 'isFailed' | 'getError'>;
+
+/**
  * Polls an async operation until it reaches a terminal state.
+ *
+ * `isComplete` is checked before `isFailed`, so `isFailed` only takes effect
+ * for states that `isComplete` does not already treat as terminal.
  *
  * @param options - Polling configuration.
  * @returns The final result once `isComplete` returns `true`.
- * @throws {@link DocuTrayError} if `isFailed` returns `true`.
- * @throws {@link APITimeoutError} if the timeout is exceeded.
+ * @throws {@link DocuTrayError} if `isFailed` returns `true` for a result that is not complete.
+ * @throws {@link APITimeoutError} if the timeout is exceeded. The check runs after each `pollInterval`.
+ * @throws Any error raised by `getStatus`.
  *
  * @example
  * ```ts
