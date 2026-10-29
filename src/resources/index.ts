@@ -1,6 +1,7 @@
 export { Convert } from './convert.js';
 export { Identify } from './identify.js';
 export { DocumentTypes } from './document-types.js';
+export type { DocumentTypeEnvelope } from './document-types.js';
 export type {
   DocumentTypeCreateParams,
   DocumentTypeUpdateParams,
@@ -15,6 +16,8 @@ export type {
   KnowledgeBaseUpdateParams,
   KnowledgeBaseSearchParams,
   KnowledgeBaseListParams,
+  KnowledgeBaseSyncParams,
+  KnowledgeBaseEnvelope,
   KBDocumentCreateParams,
   KBDocumentUpdateParams,
   KBDocumentListParams,

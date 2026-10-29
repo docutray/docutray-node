@@ -1,9 +1,9 @@
 import { APIClient } from '../../src/core/api-client.js';
 import { DocuTray } from '../../src/client.js';
-import type { ConversionResult, ConversionStatus } from '../../src/types/convert.js';
-import type { IdentificationStatus } from '../../src/types/identify.js';
+import type { ConversionEnqueued, ConversionResult, ConversionStatus } from '../../src/types/convert.js';
+import type { IdentificationEnqueued, IdentificationResult, IdentificationStatus } from '../../src/types/identify.js';
 import type { ConversionSpec, DocumentType, ValidationResult } from '../../src/types/document-type.js';
-import type { StepExecutionStatus } from '../../src/types/step.js';
+import type { StepExecutionEnqueued, StepExecutionStatus } from '../../src/types/step.js';
 import type { KnowledgeBase, KnowledgeBaseDocument, SearchResult, SyncResult } from '../../src/types/knowledge-base.js';
 
 export const TEST_BASE_URL = 'https://app.docutray.com';
@@ -40,6 +40,13 @@ export const mockConversionResult: ConversionResult = {
   validation: { valid: true, errors: [], warnings: [] },
 };
 
+/** Body of `POST /api/convert-async`. */
+export const mockConversionEnqueued: ConversionEnqueued = {
+  conversion_id: 'conv-123',
+  status_url: 'https://app.docutray.com/api/convert-async/status/conv-123',
+  status: 'ENQUEUED',
+};
+
 export const mockConversionPending: ConversionStatus = {
   ...mockConversionStatus,
   status: 'ENQUEUED',
@@ -47,24 +54,36 @@ export const mockConversionPending: ConversionStatus = {
   response_timestamp: null,
 };
 
+/** Body of a synchronous `POST /api/identify`. */
+export const mockIdentificationResult: IdentificationResult = {
+  document_type: { code: 'invoice', name: 'Invoice', confidence: 0.95 },
+  alternatives: [{ code: 'receipt', name: 'Receipt', confidence: 0.3 }],
+};
+
+/** Body of `POST /api/identify-async`. */
+export const mockIdentificationEnqueued: IdentificationEnqueued = {
+  id: 'id-456',
+  status: 'ENQUEUED',
+  documentTypeCode: null,
+};
+
+/** Body of `GET /api/identify-async/status/{id}` on SUCCESS. */
 export const mockIdentificationStatus: IdentificationStatus = {
   id: 'id-456',
   status: 'SUCCESS',
-  status_url: '/api/identify-async/status/id-456',
+  document_type_code_options: ['invoice', 'receipt'],
   request_timestamp: '2025-01-01T00:00:00Z',
   response_timestamp: '2025-01-01T00:00:01Z',
-  original_filename: 'test.pdf',
   document_type: { code: 'invoice', name: 'Invoice', confidence: 0.95 },
   alternatives: [{ code: 'receipt', name: 'Receipt', confidence: 0.3 }],
-  error: null,
 };
 
+/** Body of `GET /api/identify-async/status/{id}` while processing. */
 export const mockIdentificationPending: IdentificationStatus = {
-  ...mockIdentificationStatus,
-  status: 'ENQUEUED',
-  document_type: null,
-  alternatives: null,
-  response_timestamp: null,
+  id: 'id-456',
+  status: 'PROCESSING',
+  document_type_code_options: ['invoice', 'receipt', 'contract'],
+  request_timestamp: '2025-01-01T00:00:00Z',
 };
 
 export const mockDocumentType: DocumentType = {
@@ -117,41 +136,55 @@ export const mockValidationResult: ValidationResult = {
   warnings: { count: 1, messages: ['Field "optional" has no default value'] },
 };
 
-export const mockStepExecutionStatus: StepExecutionStatus = {
+/** Body of `POST /api/steps-async/{stepId}`. */
+export const mockStepExecutionEnqueued: StepExecutionEnqueued = {
   id: 'exec-abc',
-  status: 'SUCCESS',
+  status: 'ENQUEUED',
   step_id: 'step-1',
   step_name: 'Test Step',
-  request_timestamp: '2025-01-01T00:00:00Z',
-  response_timestamp: '2025-01-01T00:00:01Z',
-  original_filename: 'test.pdf',
-  data: { result: 'processed' },
-  error: null,
 };
 
+/** Body of `GET /api/steps-async/status/{executionId}` on SUCCESS. */
+export const mockStepExecutionStatus: StepExecutionStatus = {
+  execution_id: 'exec-abc',
+  conversion_id: 'exec-abc',
+  status: 'SUCCESS',
+  request_timestamp: '2025-01-01T00:00:00Z',
+  response_timestamp: '2025-01-01T00:00:01Z',
+  data: { result: 'processed' },
+  identification: null,
+  validation: { errors: { count: 0, messages: [] }, warnings: { count: 0, messages: [] } },
+};
+
+/** Body of `GET /api/steps-async/status/{executionId}` while queued. */
 export const mockStepExecutionPending: StepExecutionStatus = {
-  ...mockStepExecutionStatus,
+  execution_id: 'exec-abc',
+  conversion_id: 'exec-abc',
   status: 'ENQUEUED',
-  data: null,
-  response_timestamp: null,
+  request_timestamp: '2025-01-01T00:00:00Z',
 };
 
 export const mockKnowledgeBase: KnowledgeBase = {
-  id: 'kb-1',
+  id: 'kb1',
+  organizationId: 'org1',
   name: 'Test KB',
   description: 'Test knowledge base',
-  schema: null,
+  schema: { type: 'object' },
+  indexingPreferences: {},
+  indexingFields: [],
   isActive: true,
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-01-01T00:00:00Z',
-  documentCount: 10,
+  _count: { documents: 10 },
 };
 
 export const mockKBDocument: KnowledgeBaseDocument = {
-  id: 'doc-1',
+  id: 'cmdoc1',
+  knowledgeBaseId: 'kb1',
   documentId: 'doc-ext-1',
   content: { title: 'Test Document' },
   metadata: { source: 'upload' },
+  embeddingStatus: 'PENDING',
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-01-01T00:00:00Z',
 };
@@ -166,7 +199,8 @@ export const mockSyncResult: SyncResult = {
   syncId: 'sync-1',
   status: 'completed',
   documentsProcessed: 5,
-  errors: null,
+  embeddingsGenerated: 5,
+  errors: [],
   startedAt: '2025-01-01T00:00:00Z',
   completedAt: '2025-01-01T00:00:01Z',
 };

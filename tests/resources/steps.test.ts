@@ -6,6 +6,7 @@ import { RawResponse } from '../../src/core/raw-response.js';
 import { DocuTrayError } from '../../src/core/error.js';
 import {
   TEST_BASE_URL,
+  mockStepExecutionEnqueued,
   mockStepExecutionStatus,
   mockStepExecutionPending,
 } from '../helpers/fixtures.js';
@@ -22,7 +23,7 @@ describe('Steps', () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/steps-async/step-1`, async ({ request }) => {
           receivedContentType = request.headers.get('content-type') ?? '';
-          return HttpResponse.json(mockStepExecutionPending);
+          return HttpResponse.json(mockStepExecutionEnqueued);
         }),
       );
 
@@ -42,7 +43,7 @@ describe('Steps', () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/steps-async/step-1`, async ({ request }) => {
           receivedBody = await request.json() as Record<string, unknown>;
-          return HttpResponse.json(mockStepExecutionPending);
+          return HttpResponse.json(mockStepExecutionEnqueued);
         }),
       );
 
@@ -50,10 +51,15 @@ describe('Steps', () => {
       const result = await steps.runAsync({
         stepId: 'step-1',
         url: 'https://example.com/doc.pdf',
+        documentMetadata: { ref: 'A-1' },
       });
 
       expect(result.id).toBe('exec-abc');
-      expect(receivedBody.image_url).toBe('https://example.com/doc.pdf');
+      expect(result.step_name).toBe('Test Step');
+      expect(receivedBody).toEqual({
+        image_url: 'https://example.com/doc.pdf',
+        document_metadata: { ref: 'A-1' },
+      });
     });
 
     it('posts JSON when base64 is provided', async () => {
@@ -61,7 +67,7 @@ describe('Steps', () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/steps-async/step-1`, async ({ request }) => {
           receivedBody = await request.json() as Record<string, unknown>;
-          return HttpResponse.json(mockStepExecutionPending);
+          return HttpResponse.json(mockStepExecutionEnqueued);
         }),
       );
 
@@ -87,7 +93,7 @@ describe('Steps', () => {
     it('returns status with wait() method', async () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/steps-async/step-1`, () => {
-          return HttpResponse.json(mockStepExecutionPending);
+          return HttpResponse.json(mockStepExecutionEnqueued);
         }),
       );
 
@@ -104,7 +110,7 @@ describe('Steps', () => {
       let pollCount = 0;
       server.use(
         http.post(`${TEST_BASE_URL}/api/steps-async/step-1`, () => {
-          return HttpResponse.json(mockStepExecutionPending);
+          return HttpResponse.json(mockStepExecutionEnqueued);
         }),
         http.get(`${TEST_BASE_URL}/api/steps-async/status/exec-abc`, () => {
           pollCount++;
@@ -123,7 +129,28 @@ describe('Steps', () => {
 
       const result = await status.wait({ pollInterval: 10 });
       expect(result.status).toBe('SUCCESS');
+      expect(result.execution_id).toBe('exec-abc');
       expect(pollCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it('wait() resolves with the ERROR status instead of throwing', async () => {
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/steps-async/step-1`, () => HttpResponse.json(mockStepExecutionEnqueued)),
+        http.get(`${TEST_BASE_URL}/api/steps-async/status/exec-abc`, () =>
+          HttpResponse.json({
+            ...mockStepExecutionPending,
+            status: 'ERROR',
+            response_timestamp: '2025-01-01T00:00:05Z',
+            error: { message: 'Upload never completed', reason: 'stale_upload_reconciliation' },
+          }),
+        ),
+      );
+
+      const status = await createSteps().runAsync({ stepId: 'step-1', url: 'https://example.com/doc.pdf' });
+      const result = await status.wait({ pollInterval: 10 });
+
+      expect(result.status).toBe('ERROR');
+      expect(result.error).toEqual({ message: 'Upload never completed', reason: 'stale_upload_reconciliation' });
     });
   });
 
@@ -137,8 +164,9 @@ describe('Steps', () => {
 
       const steps = createSteps();
       const result = await steps.getStatus('exec-abc');
-      expect(result.id).toBe('exec-abc');
+      expect(result.execution_id).toBe('exec-abc');
       expect(result.status).toBe('SUCCESS');
+      expect(result.validation?.errors.count).toBe(0);
     });
   });
 
@@ -146,7 +174,7 @@ describe('Steps', () => {
     it('returns RawResponse for runAsync()', async () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/steps-async/step-1`, () => {
-          return HttpResponse.json(mockStepExecutionPending);
+          return HttpResponse.json(mockStepExecutionEnqueued);
         }),
       );
 

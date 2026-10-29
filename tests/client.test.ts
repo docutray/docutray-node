@@ -48,6 +48,30 @@ describe('DocuTray', () => {
       });
       expect(client).toBeInstanceOf(DocuTray);
     });
+
+    it('rejects a misspelled baseUrl instead of falling back to production', () => {
+      const options = { apiKey: 'sk-test', baseUrl: 'https://staging.example.com' };
+      expect(() => new DocuTray(options as never)).toThrow(DocuTrayError);
+      expect(() => new DocuTray(options as never)).toThrow('baseUrl (did you mean baseURL?)');
+    });
+
+    it('rejects unknown options and lists the supported ones', () => {
+      const options = { apiKey: 'sk-test', retries: 3 };
+      expect(() => new DocuTray(options as never)).toThrow(
+        /Unknown DocuTray client option\(s\): retries\. Supported options: apiKey, baseURL, timeout, maxRetries, fetch\./,
+      );
+    });
+
+    it('accepts every supported option', () => {
+      const client = new DocuTray({
+        apiKey: 'sk-test',
+        baseURL: 'https://custom.api',
+        timeout: 1000,
+        maxRetries: 0,
+        fetch: globalThis.fetch,
+      });
+      expect(client).toBeInstanceOf(DocuTray);
+    });
   });
 
   describe('resource properties', () => {

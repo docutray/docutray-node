@@ -509,6 +509,8 @@ describe('DocumentTypes', () => {
 
       expect(raw).toBeInstanceOf(RawResponse);
       expect(raw.statusCode).toBe(200);
+      const parsed = await raw.parse();
+      expect(parsed.data.id).toBe('dt-789');
     });
 
     it('returns RawResponse for create()', async () => {

@@ -1,79 +1,105 @@
 /**
- * A knowledge base definition from the API.
+ * A knowledge base: a collection of documents with semantic search.
  */
 export interface KnowledgeBase {
   /** Unique identifier. */
   id: string;
-  /** Human-readable name. */
+  /** Organization that owns the knowledge base. */
+  organizationId: string;
+  /** Name, unique among the organization's active knowledge bases. */
   name: string;
-  /** Optional description. */
-  description: string | null;
-  /** The knowledge base schema definition. */
-  schema: Record<string, unknown> | null;
-  /** Whether the knowledge base is currently active. */
+  /** Description of the knowledge base. */
+  description: string;
+  /** JSON Schema describing the content of its documents. */
+  schema: Record<string, unknown>;
+  /** Indexing preferences used to build embeddings. */
+  indexingPreferences: Record<string, unknown>;
+  /** Fields of the content used for indexing. */
+  indexingFields: string[];
+  /** `false` once the knowledge base has been deleted (soft delete). */
   isActive: boolean;
   /** ISO 8601 creation timestamp. */
-  createdAt: string | null;
+  createdAt: string;
   /** ISO 8601 last-updated timestamp. */
-  updatedAt: string | null;
-  /** Number of documents in the knowledge base. */
-  documentCount: number | null;
+  updatedAt: string;
+  /** Document count. Present on `list()` and `get()`, absent on `create()` and `update()`. */
+  _count?: { documents: number };
 }
+
+/**
+ * Embedding generation status of a knowledge base document.
+ */
+export type EmbeddingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'ERROR';
 
 /**
  * A document stored in a knowledge base.
  */
 export interface KnowledgeBaseDocument {
-  /** Unique identifier. */
+  /** Internal identifier (cuid). */
   id: string;
-  /** External document identifier. */
-  documentId: string | null;
+  /** Knowledge base the document belongs to. */
+  knowledgeBaseId: string;
+  /**
+   * Your identifier for the document, unique within the knowledge base. The
+   * document methods (`get`, `update`, `delete`) take this value, not `id`.
+   */
+  documentId: string;
   /** The document content. */
   content: Record<string, unknown>;
-  /** Additional metadata about the document. */
-  metadata: Record<string, unknown> | null;
+  /** Metadata attached to the document. */
+  metadata: Record<string, unknown>;
+  /** Embedding status. Absent from `documents.list()` results. */
+  embeddingStatus?: EmbeddingStatus;
   /** ISO 8601 creation timestamp. */
-  createdAt: string | null;
+  createdAt: string;
   /** ISO 8601 last-updated timestamp. */
-  updatedAt: string | null;
+  updatedAt: string;
+  /**
+   * Returned by `documents.get()` and `documents.update()`. Currently always
+   * `false` because of a known API limitation; do not rely on it to know
+   * whether the embedding exists.
+   */
+  hasEmbedding?: boolean;
 }
 
 /**
- * A single search result item with similarity score.
+ * A single semantic search match.
  */
 export interface SearchResultItem {
-  /** The matched document. */
+  /** The matching document. `metadata` is `{}` when `includeMetadata` is `false`. */
   document: KnowledgeBaseDocument;
-  /** Similarity score between 0 and 1 (higher is more similar). */
+  /** Similarity score between 0 and 1, rounded to 4 decimals. */
   similarity: number;
 }
 
 /**
- * Search results from a knowledge base query.
+ * Result of a semantic search in a knowledge base.
  */
 export interface SearchResult {
-  /** The matching documents with similarity scores. */
+  /** Matches ordered by similarity. Only documents with an embedding are searched. */
   data: SearchResultItem[];
-  /** The original search query. */
-  query: string | null;
-  /** Total number of results returned. */
+  /** The query that was searched. */
+  query: string;
+  /** Number of matches returned. */
   resultsCount: number;
 }
 
 /**
- * Result of a knowledge base sync operation.
+ * Result of synchronizing a knowledge base's embeddings.
  */
 export interface SyncResult {
-  /** Unique identifier for the sync operation. */
-  syncId: string | null;
-  /** Current status of the sync. */
-  status: string;
-  /** Number of documents processed during sync. */
-  documentsProcessed: number | null;
-  /** Any errors encountered during sync. */
-  errors: string[] | null;
-  /** ISO 8601 timestamp when the sync started. */
-  startedAt: string | null;
-  /** ISO 8601 timestamp when the sync completed. */
-  completedAt: string | null;
+  /** Identifier of this sync run. */
+  syncId: string;
+  /** Outcome of the sync. */
+  status: 'completed' | 'failed';
+  /** Number of documents processed. */
+  documentsProcessed: number;
+  /** Number of embeddings generated. */
+  embeddingsGenerated: number;
+  /** Errors found while processing documents. */
+  errors: string[];
+  /** ISO 8601 start timestamp. */
+  startedAt: string;
+  /** ISO 8601 end timestamp. */
+  completedAt?: string;
 }

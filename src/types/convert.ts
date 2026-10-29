@@ -78,6 +78,18 @@ export interface ConversionResult {
 }
 
 /**
+ * Response of `convert.runAsync()`: the conversion was queued.
+ */
+export interface ConversionEnqueued {
+  /** Unique identifier for this conversion; pass it to `convert.getStatus()`. */
+  conversion_id: string;
+  /** Absolute URL of the conversion's status endpoint. */
+  status_url: string;
+  /** Always `ENQUEUED`. */
+  status: 'ENQUEUED';
+}
+
+/**
  * Status of a conversion operation, as returned by the API.
  */
 export interface ConversionStatus {
@@ -128,10 +140,12 @@ export interface ConvertParams {
   contentType?: ImageContentType;
   /** Filename hint for content type detection. */
   filename?: string;
-  /** When `true`, the API waits for conversion to complete before responding. */
-  wait?: boolean;
-  /** URL to receive a webhook notification when conversion completes. */
-  webhookUrl?: string;
+  /**
+   * Metadata to attach to the document (for example your own ids). It is
+   * echoed in status responses and webhooks. With file uploads, values must
+   * be strings, numbers, booleans or `null`.
+   */
+  documentMetadata?: Record<string, unknown>;
 }
 
 /**

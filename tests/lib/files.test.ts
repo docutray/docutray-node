@@ -224,27 +224,26 @@ describe('prepareBase64Upload', () => {
     expect(result.image_content_type).toBe('application/pdf');
   });
 
-  it('strips data URI prefix', () => {
+  it('strips data URI prefix and sends its MIME type', () => {
     const dataUri = 'data:image/png;base64,iVBORw0KGgo=';
     const result = prepareBase64Upload(dataUri);
 
-    expect(result.image_base64).toBe('iVBORw0KGgo=');
+    // The API rejects prefix-less base64 without image_content_type
+    expect(result).toEqual({ image_base64: 'iVBORw0KGgo=', image_content_type: 'image/png' });
   });
 
-  it('omits content type when data URI prefix is present', () => {
+  it('prefers the data URI MIME type over the contentType hint', () => {
     const dataUri = 'data:image/jpeg;base64,/9j/4AAQ=';
     const result = prepareBase64Upload(dataUri, 'image/png');
 
-    expect(result.image_base64).toBe('/9j/4AAQ=');
-    expect('image_content_type' in result).toBe(false);
+    expect(result).toEqual({ image_base64: '/9j/4AAQ=', image_content_type: 'image/jpeg' });
   });
 
   it('handles data URI with application content type', () => {
     const dataUri = 'data:application/pdf;base64,JVBERi0=';
     const result = prepareBase64Upload(dataUri);
 
-    expect(result.image_base64).toBe('JVBERi0=');
-    expect('image_content_type' in result).toBe(false);
+    expect(result).toEqual({ image_base64: 'JVBERi0=', image_content_type: 'application/pdf' });
   });
 
   it('omits content type key when not provided for plain base64', () => {

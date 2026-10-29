@@ -67,6 +67,18 @@ jobs:
             console.log('Package contents OK:', paths.length, 'files');
           "
 
+      - name: Verify VERSION matches package.json
+        run: |
+          node -e "
+            const { VERSION } = require('./dist/index.js');
+            const { version } = require('./package.json');
+            if (VERSION !== version) {
+              console.error('dist VERSION', VERSION, '!= package.json', version);
+              process.exit(1);
+            }
+            console.log('VERSION OK:', VERSION);
+          "
+
       - name: Check types with attw
         run: npx @arethetypeswrong/cli --pack .
 

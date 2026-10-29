@@ -8,35 +8,57 @@ import type { ValidationSummary } from './validation.js';
 export type StepExecutionStatusType = 'ENQUEUED' | 'PROCESSING' | 'SUCCESS' | 'ERROR';
 
 /**
- * Status of a step execution, as returned by the API.
+ * Response of `steps.runAsync()`: the execution was queued.
+ */
+export interface StepExecutionEnqueued {
+  /** Unique identifier for this execution; pass it to `steps.getStatus()`. */
+  id: string;
+  /** Always `ENQUEUED`. */
+  status: 'ENQUEUED';
+  /** The step that will run. */
+  step_id: string;
+  /** Human-readable name of the step. */
+  step_name: string;
+}
+
+/**
+ * Structured error of a failed step execution.
+ */
+export interface StepExecutionError {
+  /** Error message. */
+  message: string;
+  /** Pipeline phase that failed, when known. */
+  phase?: string;
+  /** When the error happened, when known. */
+  timestamp?: string;
+  /** Machine-readable reason, when known (e.g. `stale_upload_reconciliation`). */
+  reason?: string;
+}
+
+/**
+ * Status of a step execution (`steps.getStatus()` and `wait()`).
  */
 export interface StepExecutionStatus {
-  /** Unique identifier for this execution (present in enqueue response). */
-  id: string;
-  /** Conversion identifier (present in status response). */
+  /** Unique identifier for this execution (the `id` returned by `runAsync()`). */
+  execution_id: string;
+  /** @deprecated Same value as `execution_id`, kept by the API for compatibility. */
   conversion_id?: string;
   /** Current status of the execution. */
   status: StepExecutionStatusType;
-  /** The step identifier that was executed (present in enqueue response). */
-  step_id: string | null;
-  /** Human-readable name of the step (present in enqueue response). */
-  step_name: string | null;
-  /** Timestamp when the execution was requested. */
-  request_timestamp: string | null;
-  /** Timestamp when the execution completed. */
-  response_timestamp: string | null;
-  /** The original filename of the uploaded document. */
-  original_filename: string | null;
-  /** The processed data result (populated on success). */
-  data: Record<string, unknown> | null;
-  /** Error details (populated on failure). May be a string or structured object. */
-  error: string | Record<string, unknown> | null;
-  /** Document identification result from the step pipeline. */
+  /** Timestamp when the execution started. */
+  request_timestamp: string;
+  /** Timestamp when the execution finished. */
+  response_timestamp?: string;
+  /** The processed data (on `SUCCESS`). */
+  data?: Record<string, unknown> | null;
+  /** Document identification result from the step pipeline (on `SUCCESS`). */
   identification?: Record<string, unknown> | null;
-  /** Validation summary from the step pipeline: error and warning counts and messages. */
-  validation?: ValidationSummary | null;
-  /** Additional metadata attached to the document. */
-  document_metadata?: Record<string, unknown> | null;
+  /** Validation summary from the step pipeline (on `SUCCESS`): error and warning counts and messages. */
+  validation?: ValidationSummary;
+  /** Error details (on `ERROR`). */
+  error?: StepExecutionError;
+  /** Metadata attached with `documentMetadata`. */
+  document_metadata?: Record<string, unknown>;
 }
 
 /**
@@ -57,12 +79,12 @@ export interface StepsRunParams {
   contentType?: ImageContentType;
   /** Filename hint for content type detection. */
   filename?: string;
-  /** Additional metadata to attach to the document being processed. */
+  /**
+   * Metadata to attach to the document (for example your own ids). It is
+   * echoed in status responses and webhooks. With file uploads, values must
+   * be strings, numbers, booleans or `null`.
+   */
   documentMetadata?: Record<string, unknown>;
-  /** When `true`, the API waits for execution to complete before responding. */
-  wait?: boolean;
-  /** URL to receive a webhook notification when execution completes. */
-  webhookUrl?: string;
 }
 
 /**

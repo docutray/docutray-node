@@ -5,16 +5,15 @@ import { waitForCompletion } from '../core/polling.js';
 import { prepareFileUpload, prepareUrlUpload, prepareBase64Upload } from '../lib/files.js';
 import {
   isStepExecutionComplete,
-  isStepExecutionError,
 } from '../types/step.js';
-import type { StepExecutionStatus, StepsRunParams } from '../types/step.js';
+import type { StepExecutionEnqueued, StepExecutionStatus, StepsRunParams } from '../types/step.js';
 import type { RequestOptions } from '../core/types.js';
 import type { RawResponse } from '../core/raw-response.js';
-import type { PollOptions } from '../core/polling.js';
+import type { WaitOptions } from '../core/polling.js';
 
 /** @internal */
-type StepExecutionStatusWithWait = StepExecutionStatus & {
-  wait: (pollOptions?: Partial<PollOptions<StepExecutionStatus>>) => Promise<StepExecutionStatus>;
+type StepExecutionEnqueuedWithWait = StepExecutionEnqueued & {
+  wait: (pollOptions?: WaitOptions<StepExecutionStatus>) => Promise<StepExecutionStatus>;
 };
 
 /**
@@ -38,23 +37,20 @@ export class Steps extends APIResource {
    *
    * @param params - Step execution parameters including step ID and file source.
    * @param options - Per-request options.
-   * @returns The initial status with a `wait()` method that polls until completion.
+   * @returns The initial status with a `wait()` method that polls until the operation
+   *   reaches `SUCCESS` or `ERROR` and resolves with that final status. `wait()` does
+   *   not throw on `ERROR`: check `status` (and `error`) on the result. It rejects
+   *   only on timeout (`APITimeoutError`) or when a status request fails.
    * @throws {@link DocuTrayError} if no file source is provided.
    */
-  async runAsync(params: StepsRunParams, options?: Omit<RequestOptions, 'raw'>): Promise<StepExecutionStatusWithWait> {
-    const status = await this._run(params, options) as StepExecutionStatus;
+  async runAsync(params: StepsRunParams, options?: Omit<RequestOptions, 'raw'>): Promise<StepExecutionEnqueuedWithWait> {
+    const status = await this._run<StepExecutionEnqueued>(params, options) as StepExecutionEnqueued;
     return Object.assign(status, {
-      wait: (pollOptions?: Partial<PollOptions<StepExecutionStatus>>) =>
+      wait: (pollOptions?: WaitOptions<StepExecutionStatus>) =>
         waitForCompletion<StepExecutionStatus>({
+          ...pollOptions,
           getStatus: () => this.getStatus(status.id, options),
           isComplete: isStepExecutionComplete,
-          isFailed: isStepExecutionError,
-          getError: (s) => {
-            if (typeof s.error === 'string') return s.error;
-            if (s.error) return JSON.stringify(s.error);
-            return 'Step execution failed';
-          },
-          ...pollOptions,
         }),
     });
   }
@@ -68,7 +64,7 @@ export class Steps extends APIResource {
    */
   async getStatus(executionId: string, options?: Omit<RequestOptions, 'raw'>): Promise<StepExecutionStatus> {
     return this._client.get<StepExecutionStatus>(
-      `/api/steps-async/status/${executionId}`,
+      `/api/steps-async/status/${encodeURIComponent(executionId)}`,
       options,
     ) as Promise<StepExecutionStatus>;
   }
@@ -81,19 +77,17 @@ export class Steps extends APIResource {
   }
 
   /** @internal */
-  protected async _run(
+  protected async _run<T>(
     params: StepsRunParams,
     options?: RequestOptions,
-  ): Promise<StepExecutionStatus | RawResponse<StepExecutionStatus>> {
-    const { stepId, file, url, base64, contentType, filename, documentMetadata, ...rest } = params;
-    const path = `/api/steps-async/${stepId}`;
+  ): Promise<T | RawResponse<T>> {
+    const { stepId, file, url, base64, contentType, filename, documentMetadata } = params;
+    const path = `/api/steps-async/${encodeURIComponent(stepId)}`;
 
     if (file) {
       const { formData } = prepareFileUpload(file, { filename, contentType });
       if (documentMetadata) formData.append('document_metadata', JSON.stringify(documentMetadata));
-      if (rest.webhookUrl) formData.append('webhook_url', rest.webhookUrl);
-      if (rest.wait !== undefined) formData.append('wait', String(rest.wait));
-      return this._client.post<StepExecutionStatus>(path, formData, options);
+      return this._client.post<T>(path, formData, options);
     }
 
     if (url) {
@@ -101,9 +95,7 @@ export class Steps extends APIResource {
         ...prepareUrlUpload(url, contentType),
       };
       if (documentMetadata) body.document_metadata = documentMetadata;
-      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
-      if (rest.wait !== undefined) body.wait = rest.wait;
-      return this._client.post<StepExecutionStatus>(path, body, options);
+      return this._client.post<T>(path, body, options);
     }
 
     if (base64) {
@@ -111,9 +103,7 @@ export class Steps extends APIResource {
         ...prepareBase64Upload(base64, contentType),
       };
       if (documentMetadata) body.document_metadata = documentMetadata;
-      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
-      if (rest.wait !== undefined) body.wait = rest.wait;
-      return this._client.post<StepExecutionStatus>(path, body, options);
+      return this._client.post<T>(path, body, options);
     }
 
     throw new DocuTrayError('Must provide file, url, or base64');
@@ -121,10 +111,10 @@ export class Steps extends APIResource {
 }
 
 /** @internal */
-type StepsRunFn = (
+type StepsRunFn = <T>(
   params: StepsRunParams,
   options?: RequestOptions,
-) => Promise<StepExecutionStatus | RawResponse<StepExecutionStatus>>;
+) => Promise<T | RawResponse<T>>;
 
 /** @internal */
 class StepsWithRawResponse {
@@ -136,13 +126,13 @@ class StepsWithRawResponse {
     this._client = client;
   }
 
-  async runAsync(params: StepsRunParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<StepExecutionStatus>> {
-    return this._run(params, { ...options, raw: true }) as Promise<RawResponse<StepExecutionStatus>>;
+  async runAsync(params: StepsRunParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<StepExecutionEnqueued>> {
+    return this._run<StepExecutionEnqueued>(params, { ...options, raw: true }) as Promise<RawResponse<StepExecutionEnqueued>>;
   }
 
   async getStatus(executionId: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<StepExecutionStatus>> {
     return this._client.get<StepExecutionStatus>(
-      `/api/steps-async/status/${executionId}`,
+      `/api/steps-async/status/${encodeURIComponent(executionId)}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<StepExecutionStatus>>;
   }

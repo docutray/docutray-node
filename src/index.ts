@@ -68,7 +68,7 @@ export { RawResponse } from './core/raw-response.js';
 export { Page } from './core/pagination.js';
 export type { PageResponse, PageOptions } from './core/pagination.js';
 export { waitForCompletion } from './core/polling.js';
-export type { PollOptions } from './core/polling.js';
+export type { PollOptions, WaitOptions } from './core/polling.js';
 export { calculateRetryDelay, shouldRetry } from './core/retry.js';
 
 // Resource base
@@ -86,10 +86,13 @@ export {
 export type {
   DocumentTypeCreateParams,
   DocumentTypeUpdateParams,
+  DocumentTypeEnvelope,
   KnowledgeBaseCreateParams,
   KnowledgeBaseUpdateParams,
   KnowledgeBaseSearchParams,
   KnowledgeBaseListParams,
+  KnowledgeBaseSyncParams,
+  KnowledgeBaseEnvelope,
   KBDocumentCreateParams,
   KBDocumentUpdateParams,
   KBDocumentListParams,
@@ -105,6 +108,7 @@ export type {
   ErrorDetail,
   ConversionStatusType,
   ConversionResult,
+  ConversionEnqueued,
   ConversionStatus,
   ConvertParams,
   FieldLocations,
@@ -121,9 +125,12 @@ export type {
   DSLDiagnostic,
   WebhookEventType,
   ConversionWebhookPayload,
+  IdentificationWebhookPayload,
+  StepWebhookPayload,
   IdentificationStatusType,
   DocumentTypeMatch,
   IdentificationResult,
+  IdentificationEnqueued,
   IdentificationStatus,
   IdentifyParams,
   DocumentType,
@@ -139,10 +146,13 @@ export type {
   DocumentTypeValidateParams,
   DocumentTypesListParams,
   StepExecutionStatusType,
+  StepExecutionEnqueued,
+  StepExecutionError,
   StepExecutionStatus,
   StepsRunParams,
   KnowledgeBase,
   KnowledgeBaseDocument,
+  EmbeddingStatus,
   SearchResultItem,
   SearchResult,
   SyncResult,

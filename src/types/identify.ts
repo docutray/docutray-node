@@ -19,37 +19,56 @@ export interface DocumentTypeMatch {
 }
 
 /**
- * Result of a successful identification, including primary and alternative matches.
+ * Result of a synchronous identification (`identify.run()`).
  */
 export interface IdentificationResult {
-  /** The best-matching document type. */
-  documentType: DocumentTypeMatch;
-  /** Other possible document type matches, ordered by confidence. */
-  alternatives: DocumentTypeMatch[];
+  /**
+   * The best-matching document type. When the document matches none of the
+   * options, `code` is `'otro'`.
+   */
+  document_type: DocumentTypeMatch;
+  /** Other possible matches, ordered by confidence. Absent when there are none. */
+  alternatives?: DocumentTypeMatch[];
 }
 
 /**
- * Status of an identification operation, as returned by the API.
+ * Response of `identify.runAsync()`: the identification was queued.
+ */
+export interface IdentificationEnqueued {
+  /** Unique identifier for this identification; pass it to `identify.getStatus()`. */
+  id: string;
+  /** Always `ENQUEUED`. */
+  status: 'ENQUEUED';
+  /** Always `null` at this point. */
+  documentTypeCode: null;
+}
+
+/**
+ * Status of an asynchronous identification (`identify.getStatus()`).
  */
 export interface IdentificationStatus {
   /** Unique identifier for this identification. */
   id: string;
   /** Current status of the identification. */
   status: IdentificationStatusType;
-  /** URL to poll for status updates. */
-  status_url: string | null;
+  /**
+   * Document type codes considered. On `SUCCESS`, the options sent with the
+   * request; in other states, every code the organization can access.
+   */
+  document_type_code_options: string[];
   /** Timestamp when the identification was requested. */
-  request_timestamp: string | null;
-  /** Timestamp when the identification completed. */
-  response_timestamp: string | null;
-  /** The original filename of the uploaded document. */
-  original_filename: string | null;
-  /** The best-matching document type (populated on success). */
-  document_type: DocumentTypeMatch | null;
-  /** Alternative document type matches (populated on success). */
-  alternatives: DocumentTypeMatch[] | null;
-  /** Error message (populated on failure). */
-  error: string | null;
+  request_timestamp: string;
+  /** Timestamp when the identification finished (`SUCCESS` or `ERROR`). */
+  response_timestamp?: string;
+  /**
+   * The best-matching document type (on `SUCCESS`). `null` when the result is
+   * no longer available (results are kept for 48 hours).
+   */
+  document_type?: DocumentTypeMatch | null;
+  /** Alternative matches (on `SUCCESS`). */
+  alternatives?: DocumentTypeMatch[];
+  /** Error message (on `ERROR`). */
+  error?: string | null;
 }
 
 /**
@@ -68,12 +87,15 @@ export interface IdentifyParams {
   contentType?: ImageContentType;
   /** Filename hint for content type detection. */
   filename?: string;
-  /** Restrict identification to these document type codes. */
-  documentTypeCodeOptions?: string[];
-  /** When `true`, the API waits for identification to complete before responding. */
-  wait?: boolean;
-  /** URL to receive a webhook notification when identification completes. */
-  webhookUrl?: string;
+  /** Document type codes to choose from. Required by the API (at least one). */
+  documentTypeCodeOptions: string[];
+  /**
+   * Metadata to attach to the document (for example your own ids). It is
+   * echoed in identification webhooks, not in `identify.run()` or status
+   * responses. With file uploads, values must be strings, numbers, booleans
+   * or `null`.
+   */
+  documentMetadata?: Record<string, unknown>;
 }
 
 /**

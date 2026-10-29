@@ -5,16 +5,15 @@ import { waitForCompletion } from '../core/polling.js';
 import { prepareFileUpload, prepareUrlUpload, prepareBase64Upload } from '../lib/files.js';
 import {
   isIdentificationComplete,
-  isIdentificationError,
 } from '../types/identify.js';
-import type { IdentificationStatus, IdentifyParams } from '../types/identify.js';
+import type { IdentificationEnqueued, IdentificationResult, IdentificationStatus, IdentifyParams } from '../types/identify.js';
 import type { RequestOptions } from '../core/types.js';
 import type { RawResponse } from '../core/raw-response.js';
-import type { PollOptions } from '../core/polling.js';
+import type { WaitOptions } from '../core/polling.js';
 
 /** @internal */
-type IdentificationStatusWithWait = IdentificationStatus & {
-  wait: (pollOptions?: Partial<PollOptions<IdentificationStatus>>) => Promise<IdentificationStatus>;
+type IdentificationEnqueuedWithWait = IdentificationEnqueued & {
+  wait: (pollOptions?: WaitOptions<IdentificationStatus>) => Promise<IdentificationStatus>;
 };
 
 /**
@@ -27,6 +26,7 @@ type IdentificationStatusWithWait = IdentificationStatus & {
  * // Synchronous identification
  * const result = await client.identify.run({
  *   url: 'https://example.com/document.pdf',
+ *   documentTypeCodeOptions: ['invoice', 'receipt'],
  * });
  * console.log(result.document_type); // best match
  * console.log(result.alternatives); // other candidates
@@ -34,6 +34,7 @@ type IdentificationStatusWithWait = IdentificationStatus & {
  * // Asynchronous identification with polling
  * const status = await client.identify.runAsync({
  *   file: fs.readFileSync('document.pdf'),
+ *   documentTypeCodeOptions: ['invoice', 'receipt'],
  * });
  * const completed = await status.wait();
  * ```
@@ -44,11 +45,11 @@ export class Identify extends APIResource {
    *
    * @param params - Identification parameters including file source.
    * @param options - Per-request options.
-   * @returns The identification status with matched document types.
+   * @returns The best match (`document_type`) and, when there are any, `alternatives`.
    * @throws {@link DocuTrayError} if no file source is provided.
    */
-  async run(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<IdentificationStatus> {
-    return this._run(params, '/api/identify', options) as Promise<IdentificationStatus>;
+  async run(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<IdentificationResult> {
+    return this._run<IdentificationResult>(params, '/api/identify', options) as Promise<IdentificationResult>;
   }
 
   /**
@@ -56,19 +57,20 @@ export class Identify extends APIResource {
    *
    * @param params - Identification parameters including file source.
    * @param options - Per-request options.
-   * @returns The initial status with a `wait()` method that polls until completion.
+   * @returns The initial status with a `wait()` method that polls until the operation
+   *   reaches `SUCCESS` or `ERROR` and resolves with that final status. `wait()` does
+   *   not throw on `ERROR`: check `status` (and `error`) on the result. It rejects
+   *   only on timeout (`APITimeoutError`) or when a status request fails.
    * @throws {@link DocuTrayError} if no file source is provided.
    */
-  async runAsync(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<IdentificationStatusWithWait> {
-    const status = await this._run(params, '/api/identify-async', options) as IdentificationStatus;
+  async runAsync(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<IdentificationEnqueuedWithWait> {
+    const status = await this._run<IdentificationEnqueued>(params, '/api/identify-async', options) as IdentificationEnqueued;
     return Object.assign(status, {
-      wait: (pollOptions?: Partial<PollOptions<IdentificationStatus>>) =>
+      wait: (pollOptions?: WaitOptions<IdentificationStatus>) =>
         waitForCompletion<IdentificationStatus>({
+          ...pollOptions,
           getStatus: () => this.getStatus(status.id, options),
           isComplete: isIdentificationComplete,
-          isFailed: isIdentificationError,
-          getError: (s) => s.error ?? 'Identification failed',
-          ...pollOptions,
         }),
     });
   }
@@ -82,7 +84,7 @@ export class Identify extends APIResource {
    */
   async getStatus(identificationId: string, options?: Omit<RequestOptions, 'raw'>): Promise<IdentificationStatus> {
     return this._client.get<IdentificationStatus>(
-      `/api/identify-async/status/${identificationId}`,
+      `/api/identify-async/status/${encodeURIComponent(identificationId)}`,
       options,
     ) as Promise<IdentificationStatus>;
   }
@@ -95,41 +97,40 @@ export class Identify extends APIResource {
   }
 
   /** @internal */
-  protected async _run(
+  protected async _run<T>(
     params: IdentifyParams,
     path: string,
     options?: RequestOptions,
-  ): Promise<IdentificationStatus | RawResponse<IdentificationStatus>> {
-    const { file, url, base64, contentType, filename, documentTypeCodeOptions, ...rest } = params;
+  ): Promise<T | RawResponse<T>> {
+    const { file, url, base64, contentType, filename, documentTypeCodeOptions, documentMetadata } = params;
+
+    if (!Array.isArray(documentTypeCodeOptions) || documentTypeCodeOptions.length === 0) {
+      throw new DocuTrayError('Must provide documentTypeCodeOptions with at least one document type code');
+    }
 
     if (file) {
       const { formData } = prepareFileUpload(file, { filename, contentType });
-      if (documentTypeCodeOptions) {
-        formData.append('document_type_code_options', JSON.stringify(documentTypeCodeOptions));
-      }
-      if (rest.webhookUrl) formData.append('webhook_url', rest.webhookUrl);
-      if (rest.wait !== undefined) formData.append('wait', String(rest.wait));
-      return this._client.post<IdentificationStatus>(path, formData, options);
+      formData.append('document_type_code_options', JSON.stringify(documentTypeCodeOptions));
+      if (documentMetadata) formData.append('document_metadata', JSON.stringify(documentMetadata));
+      return this._client.post<T>(path, formData, options);
     }
 
     if (url) {
       const body: Record<string, unknown> = {
         ...prepareUrlUpload(url, contentType),
       };
-      if (documentTypeCodeOptions) body.document_type_code_options = documentTypeCodeOptions;
-      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
-      if (rest.wait !== undefined) body.wait = rest.wait;
-      return this._client.post<IdentificationStatus>(path, body, options);
+      body.document_type_code_options = documentTypeCodeOptions;
+      if (documentMetadata) body.document_metadata = documentMetadata;
+      return this._client.post<T>(path, body, options);
     }
 
     if (base64) {
       const body: Record<string, unknown> = {
         ...prepareBase64Upload(base64, contentType),
       };
-      if (documentTypeCodeOptions) body.document_type_code_options = documentTypeCodeOptions;
-      if (rest.webhookUrl) body.webhook_url = rest.webhookUrl;
-      if (rest.wait !== undefined) body.wait = rest.wait;
-      return this._client.post<IdentificationStatus>(path, body, options);
+      body.document_type_code_options = documentTypeCodeOptions;
+      if (documentMetadata) body.document_metadata = documentMetadata;
+      return this._client.post<T>(path, body, options);
     }
 
     throw new DocuTrayError('Must provide file, url, or base64');
@@ -137,11 +138,11 @@ export class Identify extends APIResource {
 }
 
 /** @internal */
-type IdentifyRunFn = (
+type IdentifyRunFn = <T>(
   params: IdentifyParams,
   path: string,
   options?: RequestOptions,
-) => Promise<IdentificationStatus | RawResponse<IdentificationStatus>>;
+) => Promise<T | RawResponse<T>>;
 
 /** @internal */
 class IdentifyWithRawResponse {
@@ -153,17 +154,17 @@ class IdentifyWithRawResponse {
     this._client = client;
   }
 
-  async run(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<IdentificationStatus>> {
-    return this._run(params, '/api/identify', { ...options, raw: true }) as Promise<RawResponse<IdentificationStatus>>;
+  async run(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<IdentificationResult>> {
+    return this._run<IdentificationResult>(params, '/api/identify', { ...options, raw: true }) as Promise<RawResponse<IdentificationResult>>;
   }
 
-  async runAsync(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<IdentificationStatus>> {
-    return this._run(params, '/api/identify-async', { ...options, raw: true }) as Promise<RawResponse<IdentificationStatus>>;
+  async runAsync(params: IdentifyParams, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<IdentificationEnqueued>> {
+    return this._run<IdentificationEnqueued>(params, '/api/identify-async', { ...options, raw: true }) as Promise<RawResponse<IdentificationEnqueued>>;
   }
 
   async getStatus(identificationId: string, options?: Omit<RequestOptions, 'raw'>): Promise<RawResponse<IdentificationStatus>> {
     return this._client.get<IdentificationStatus>(
-      `/api/identify-async/status/${identificationId}`,
+      `/api/identify-async/status/${encodeURIComponent(identificationId)}`,
       { ...options, raw: true },
     ) as Promise<RawResponse<IdentificationStatus>>;
   }
