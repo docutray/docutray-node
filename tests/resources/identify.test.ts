@@ -105,6 +105,25 @@ describe('Identify', () => {
       expect(result.alternatives).toBeUndefined();
     });
 
+    it.each([
+      ['missing', undefined],
+      ['empty', []],
+    ])('throws before any request when documentTypeCodeOptions is %s', async (_label, documentTypeCodeOptions) => {
+      let requested = false;
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/identify`, () => {
+          requested = true;
+          return HttpResponse.json(mockIdentificationResult);
+        }),
+      );
+      const params = { file: Buffer.from('pdf'), filename: 'a.pdf', documentTypeCodeOptions } as unknown as IdentifyParams;
+
+      await expect(createIdentify().run(params)).rejects.toThrow(
+        'Must provide documentTypeCodeOptions with at least one document type code',
+      );
+      expect(requested).toBe(false);
+    });
+
     it('throws when no file source is provided', async () => {
       const params = { documentTypeCodeOptions: options } as IdentifyParams;
       await expect(createIdentify().run(params)).rejects.toThrow(DocuTrayError);

@@ -48,9 +48,9 @@ export class Steps extends APIResource {
     return Object.assign(status, {
       wait: (pollOptions?: WaitOptions<StepExecutionStatus>) =>
         waitForCompletion<StepExecutionStatus>({
+          ...pollOptions,
           getStatus: () => this.getStatus(status.id, options),
           isComplete: isStepExecutionComplete,
-          ...pollOptions,
         }),
     });
   }

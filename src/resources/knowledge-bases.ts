@@ -117,9 +117,9 @@ export interface KBDocumentListParams {
   page?: number;
   /** Maximum items per page (1–100). */
   limit?: number;
-  /** Case-insensitive match on `documentId`. */
+  /** Case-insensitive match on `documentId`. The API currently treats it like `documentId`. */
   search?: string;
-  /** Case-insensitive match on `documentId`. */
+  /** Case-insensitive partial match on `documentId`. */
   documentId?: string;
 }
 
@@ -308,9 +308,12 @@ export class KnowledgeBases extends APIResource {
  * ```
  */
 export class KnowledgeBaseDocuments {
+  /** @internal */
   protected _client: APIClient;
+  /** @internal */
   protected _basePath: string;
 
+  /** @internal */
   constructor(client: APIClient, knowledgeBaseId: string) {
     this._client = client;
     this._basePath = `/api/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`;

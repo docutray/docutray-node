@@ -68,9 +68,9 @@ export class Identify extends APIResource {
     return Object.assign(status, {
       wait: (pollOptions?: WaitOptions<IdentificationStatus>) =>
         waitForCompletion<IdentificationStatus>({
+          ...pollOptions,
           getStatus: () => this.getStatus(status.id, options),
           isComplete: isIdentificationComplete,
-          ...pollOptions,
         }),
     });
   }
@@ -103,6 +103,10 @@ export class Identify extends APIResource {
     options?: RequestOptions,
   ): Promise<T | RawResponse<T>> {
     const { file, url, base64, contentType, filename, documentTypeCodeOptions, documentMetadata } = params;
+
+    if (!Array.isArray(documentTypeCodeOptions) || documentTypeCodeOptions.length === 0) {
+      throw new DocuTrayError('Must provide documentTypeCodeOptions with at least one document type code');
+    }
 
     if (file) {
       const { formData } = prepareFileUpload(file, { filename, contentType });

@@ -77,13 +77,15 @@ export class DocuTray {
   }
 }
 
-const CLIENT_OPTION_KEYS: ReadonlySet<string> = new Set<keyof ClientOptions>([
-  'apiKey',
-  'baseURL',
-  'timeout',
-  'maxRetries',
-  'fetch',
-]);
+// A Record keyed by ClientOptions makes the compiler require every option here.
+const CLIENT_OPTIONS: Record<keyof ClientOptions, true> = {
+  apiKey: true,
+  baseURL: true,
+  timeout: true,
+  maxRetries: true,
+  fetch: true,
+};
+const CLIENT_OPTION_KEYS: ReadonlySet<string> = new Set(Object.keys(CLIENT_OPTIONS));
 
 /**
  * Rejects option keys the client does not support. Ignoring a misspelled key

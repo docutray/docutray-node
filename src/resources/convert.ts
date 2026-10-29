@@ -78,9 +78,9 @@ export class Convert extends APIResource {
     return Object.assign(status, {
       wait: (pollOptions?: WaitOptions<ConversionStatus>) =>
         waitForCompletion<ConversionStatus>({
+          ...pollOptions,
           getStatus: () => this.getStatus(status.conversion_id, options),
           isComplete: isConversionComplete,
-          ...pollOptions,
         }),
     });
   }

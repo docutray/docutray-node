@@ -91,8 +91,9 @@ export interface IdentifyParams {
   documentTypeCodeOptions: string[];
   /**
    * Metadata to attach to the document (for example your own ids). It is
-   * echoed in status responses and webhooks. With file uploads, values must
-   * be strings, numbers, booleans or `null`.
+   * echoed in identification webhooks, not in `identify.run()` or status
+   * responses. With file uploads, values must be strings, numbers, booleans
+   * or `null`.
    */
   documentMetadata?: Record<string, unknown>;
 }

@@ -163,6 +163,21 @@ describe('Convert', () => {
       expect(pollCount).toBeGreaterThanOrEqual(2);
     });
 
+    it('wait() ignores getStatus and isComplete passed from JavaScript', async () => {
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/convert-async`, () => HttpResponse.json(mockConversionPending)),
+        http.get(`${TEST_BASE_URL}/api/convert-async/status/conv-123`, () =>
+          HttpResponse.json({ ...mockConversionPending, status: 'ERROR', error: 'failed' }),
+        ),
+      );
+
+      const status = await createConvert().runAsync({ documentTypeCode: 'invoice', url: 'https://example.com/doc.pdf' });
+      const jsOptions = { pollInterval: 10, timeout: 1000, isComplete: undefined, getStatus: undefined } as never;
+      const result = await status.wait(jsOptions);
+
+      expect(result.status).toBe('ERROR');
+    });
+
     it('wait() resolves with the ERROR status instead of throwing', async () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/convert-async`, () => HttpResponse.json(mockConversionPending)),
