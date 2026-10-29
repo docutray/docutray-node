@@ -219,14 +219,16 @@ the summary format: `validation` is `{ errors: { count, messages }, warnings: { 
 Automatically identify document types.
 
 ```typescript
+// documentTypeCodeOptions is required: the codes to choose from
 const result = await client.identify.run({
   file: readFileSync('unknown_document.pdf'),
+  documentTypeCodeOptions: ['invoice', 'receipt', 'contract'],
+  documentMetadata: { source: 'inbox' }, // optional, echoed in async statuses and webhooks
 });
 
-if (result.document_type) {
-  console.log(`Identified as: ${result.document_type.name} (${result.document_type.code})`);
-  console.log(`Confidence: ${(result.document_type.confidence * 100).toFixed(1)}%`);
-}
+// When the document matches none of the options, the code is 'otro'
+console.log(`Identified as: ${result.document_type.name} (${result.document_type.code})`);
+console.log(`Confidence: ${(result.document_type.confidence * 100).toFixed(1)}%`);
 
 // View alternatives
 for (const alt of result.alternatives ?? []) {
@@ -426,6 +428,7 @@ const status = await client.steps.runAsync({
   stepId: 'step_invoice_extraction',
   file: readFileSync('invoice.pdf'),
 });
+console.log(`Execution ID: ${status.id}`); // getStatus(id) returns it as execution_id
 
 // Wait for completion with progress callback
 const final = await status.wait({
@@ -434,9 +437,14 @@ const final = await status.wait({
 if (final.status === 'SUCCESS') {
   console.log(final.data);
 } else {
-  console.error('Step failed:', final.error);
+  console.error('Step failed:', final.error?.message);
 }
 ```
+
+Webhooks are configured per organization in DocuTray, not per request. Type
+their bodies with `ConversionWebhookPayload`, `IdentificationWebhookPayload`
+and `StepWebhookPayload` (the event type arrives in the `X-Docutray-Event`
+header).
 
 ### Knowledge Bases
 
@@ -446,17 +454,21 @@ Manage document collections with semantic search capabilities.
 // List knowledge bases
 const kbPage = await client.knowledgeBases.list();
 for await (const kb of kbPage.autoPagingIter()) {
-  console.log(`${kb.name}: ${kb.documentCount} documents`);
+  console.log(`${kb.name}: ${kb._count?.documents ?? 0} documents`);
 }
 
-// Create a knowledge base
+// Create a knowledge base (name, description and schema are required)
 const kb = await client.knowledgeBases.create({
   name: 'Product Documentation',
   description: 'Technical documentation for products',
+  schema: { type: 'object', properties: { title: { type: 'string' } } },
 });
 
-// Add documents
-const doc = await client.knowledgeBases.documents(kb.id).create({
+// Add documents. documentId is your own identifier, unique within the
+// knowledge base; get(), update() and delete() take it instead of `id`.
+const docs = client.knowledgeBases.documents(kb.id);
+const doc = await docs.create({
+  documentId: 'getting-started',
   content: {
     title: 'Getting Started',
     content: 'Welcome to our product...',
@@ -464,17 +476,19 @@ const doc = await client.knowledgeBases.documents(kb.id).create({
   },
   metadata: { source: 'manual' },
 });
+const sameDoc = await docs.get('getting-started');
 
 // Semantic search
 const results = await client.knowledgeBases.search(kb.id, {
   query: 'how to configure authentication',
   limit: 5,
+  similarityThreshold: 0.6, // default 0.7
 });
 for (const item of results.data) {
   console.log(`${(item.similarity * 100).toFixed(1)}%: ${item.document.content.title}`);
 }
 
-// Delete knowledge base
+// Delete knowledge base (soft delete: update(kb.id, { isActive: true }) restores it)
 await client.knowledgeBases.delete(kb.id);
 ```
 

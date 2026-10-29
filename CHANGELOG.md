@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - Unreleased
+
+### Breaking changes
+
+Each item lists what to change when upgrading from 0.1.x.
+
+- **`documentTypes.validate(id, data, params?, options?)`** takes the document data as its second argument. The 0.1.x signature `validate(id, options)` sent no body, which the API rejects. Migration: pass the data, e.g. `validate(id, extracted)`; request options move to the fourth argument.
+- **`convert.run()` returns `ConversionResult`** (`{ data, validation, field_locations }`), the body the API actually sends, instead of `ConversionStatus` (types only; runtime is unchanged). Migration: read `result.data` and `result.validation`; `conversion_id`, `status` and `error` were never present on a sync conversion, which throws on failure.
+- **`wait` and `webhookUrl` removed from `ConvertParams`, `IdentifyParams` and `StepsRunParams`**, and no longer sent. The API never read them, so a per-request webhook was never configured. Migration: delete them; configure webhooks per organization in DocuTray and type the bodies with `ConversionWebhookPayload`, `IdentificationWebhookPayload` and `StepWebhookPayload`.
+- **`identify.run()` returns `IdentificationResult`** (`{ document_type, alternatives? }`), the body the API sends, instead of `IdentificationStatus`. `IdentificationResult` changed from camelCase (`documentType`) to the wire names. Migration: read `result.document_type` (non-null) and `result.alternatives ?? []`.
+- **`IdentifyParams.documentTypeCodeOptions` is required.** The API rejects requests without at least one option. Migration: pass the codes to choose from.
+- **`identify.runAsync()` and `steps.runAsync()` return the enqueue body** (`IdentificationEnqueued` `{ id, status, documentTypeCode }` and `StepExecutionEnqueued` `{ id, status, step_id, step_name }`) plus `wait()`. Migration: only `id` and `status` are available before `wait()`.
+- **`StepExecutionStatus.execution_id`** replaces `id`, which the status endpoint never sent (`id` was always `undefined` after `getStatus()`/`wait()`). `error` is now `StepExecutionError` (`{ message, phase?, timestamp?, reason? }`). `step_id`, `step_name` and `original_filename` were removed (the status endpoint does not send them). Migration: read `status.execution_id` and `status.error?.message`.
+- **`IdentificationStatus`**: `status_url` and `original_filename` removed (never sent); `document_type_code_options` added; `response_timestamp`, `document_type`, `alternatives` and `error` are optional, as the API only sends them in terminal states.
+- **Knowledge Bases unwrap the `{ data }` envelope.** `get()`, `create()`, `update()`, `sync()` and `documents().get/create/update()` returned the envelope in 0.1.x, so for example `kb.name` was `undefined`. Migration: if you worked around it with `.data`, remove it. `withRawResponse` returns the envelope (`KnowledgeBaseEnvelope<T>`).
+- **`KnowledgeBaseCreateParams.description` and `schema` are required**, and **`KBDocumentCreateParams.documentId` is required**, as the API requires them (without them every call failed with 400). Document methods (`get`, `update`, `delete`) take that `documentId`, not the internal `id`.
+- **`knowledgeBases.sync(id, params?, options?)`** takes sync params as its second argument; request options move to the third.
+- **`KnowledgeBase`** matches the API: `documentCount` (never sent) is replaced by `_count?: { documents }`; `organizationId`, `indexingPreferences` and `indexingFields` added. `SyncResult` adds `embeddingsGenerated` and types `status` as `'completed' | 'failed'`.
+- **Unknown `DocuTray` client options throw a `DocuTrayError`.** A misspelled option such as `baseUrl` was silently ignored and requests (with the API key) went to the default production URL. The error suggests the right name (`baseUrl (did you mean baseURL?)`). Migration: fix or remove the option.
+- **`wait()` options exclude `isFailed` and `getError`** (`WaitOptions<T>`). They never had an effect: `wait()` resolves with the final status on `SUCCESS` and on `ERROR`.
+
 ### Added
 
 - `dslRules` on `DocumentType`, `DocumentTypeCreateParams` and `DocumentTypeUpdateParams`: DSL business rules validated against extracted data (docutray/docutray#1111). In `update()`, omitting the field keeps the stored rules and `null` or `''` clears them.
@@ -17,18 +38,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `field_locations` (`FieldLocations`) on `ConversionResult` and `ConversionStatus`.
 - Webhook types `ConversionWebhookPayload` and `WebhookEventType`.
 - `promptHints`, `identifyPromptHints`, `keepPropertyOrdering` and `boundingBoxesEnabled` on `DocumentType`; `boundingBoxesEnabled` on create/update params.
+- Knowledge Bases parameters: `list({ search, isActive })`, `search({ similarityThreshold, includeMetadata })`, `sync(id, { force, regenerateEmbeddings })`, `documents().list({ search, documentId })`, `generateEmbedding` on document create, `regenerateEmbedding` on document update and `indexingPreferences` on create/update.
+- `documentMetadata` on `convert.run/runAsync` and `identify.run/runAsync` (already supported by steps), echoed by the API in conversion statuses and webhooks.
+- Webhook types `IdentificationWebhookPayload` and `StepWebhookPayload`.
+- `WaitOptions<T>`, `DocumentTypeEnvelope`, `KnowledgeBaseEnvelope<T>`, `KnowledgeBaseSyncParams`, `IdentificationEnqueued`, `StepExecutionEnqueued`, `StepExecutionError` and `EmbeddingStatus` exports.
 
 ### Changed
 
-- **Breaking:** `documentTypes.validate()` takes the document data as its second argument (`validate(id, data, params?, options?)`). The previous signature sent no body, which the API rejects.
-- **Breaking (types only):** `convert.run()` returns `ConversionResult` (`{ data, validation, field_locations }`), the shape the API actually returns, instead of `ConversionStatus`.
 - `StepExecutionStatus.validation` is typed as `ValidationSummary` instead of `Record<string, unknown>` (same runtime shape).
+- `ConversionWebhookPayload.status` is typed as `ConversionStatusType` instead of `string`.
 - `ValidationErrorInfo` and `ValidationWarningInfo` now live in the validation types module (still exported from the package root).
 - `isValidationValid()` uses `valid` when the API returns it.
 - API error messages fall back to the body's `error` field, so errors carry the API's message instead of `Request failed with status N`.
+- `wait()` documentation states that it resolves with the final status on `ERROR` (it never threw); the unreachable failure check was removed.
+- Ids are URL-encoded in request paths.
+- `documentTypes.withRawResponse.get/create/update()` are typed with the `{ data }` envelope they return (`DocumentTypeEnvelope`).
+- `npm run typecheck` also type-checks `tests/` and `examples/`.
 
 ### Fixed
 
+- `VERSION` (and the `User-Agent` header) is generated from `package.json` at build time. 0.1.3 to 0.1.5 reported `docutray-node/0.1.2`.
 - README code samples now match the implementation (#26): `docType.codeType` instead of `docType.code`; `steps.runAsync({ stepId, ... })` instead of `runAsync(stepId, params)`; `status.conversion_id` and `final.status === 'SUCCESS'` instead of `conversionId` and the nonexistent `isSuccess()`/`isFailed()`; `identify.run()` read through `document_type`; `await list()` before `iterPages()`/`autoPagingIter()`; `response.headers.get()` and `await response.parse()` for raw responses.
 - README and `examples/document-types.ts` use a `YOUR_DOCUMENT_TYPE_ID` placeholder instead of `dt_`-prefixed ones, and explain that `get()`, `update()` and `validate()` take the internal id (a cuid), not the `codeType` (resolve it with `list()` first; a code returns 404). The JSDoc of those methods says the same.
 
