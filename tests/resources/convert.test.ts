@@ -8,6 +8,7 @@ import {
   TEST_BASE_URL,
   mockConversionStatus,
   mockConversionPending,
+  mockConversionResult,
 } from '../helpers/fixtures.js';
 
 function createConvert(): Convert {
@@ -22,7 +23,7 @@ describe('Convert', () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/convert`, async ({ request }) => {
           receivedContentType = request.headers.get('content-type') ?? '';
-          return HttpResponse.json(mockConversionStatus);
+          return HttpResponse.json(mockConversionResult);
         }),
       );
 
@@ -33,7 +34,7 @@ describe('Convert', () => {
         filename: 'test.pdf',
       });
 
-      expect(result.conversion_id).toBe('conv-123');
+      expect(result).toEqual(mockConversionResult);
       expect(receivedContentType).toContain('multipart/form-data');
     });
 
@@ -42,7 +43,7 @@ describe('Convert', () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/convert`, async ({ request }) => {
           receivedBody = await request.json() as Record<string, unknown>;
-          return HttpResponse.json(mockConversionStatus);
+          return HttpResponse.json(mockConversionResult);
         }),
       );
 
@@ -52,7 +53,7 @@ describe('Convert', () => {
         url: 'https://example.com/doc.pdf',
       });
 
-      expect(result.conversion_id).toBe('conv-123');
+      expect(result).toEqual(mockConversionResult);
       expect(receivedBody.image_url).toBe('https://example.com/doc.pdf');
       expect(receivedBody.document_type_code).toBe('invoice');
     });
@@ -62,7 +63,7 @@ describe('Convert', () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/convert`, async ({ request }) => {
           receivedBody = await request.json() as Record<string, unknown>;
-          return HttpResponse.json(mockConversionStatus);
+          return HttpResponse.json(mockConversionResult);
         }),
       );
 
@@ -73,7 +74,7 @@ describe('Convert', () => {
         contentType: 'application/pdf',
       });
 
-      expect(result.conversion_id).toBe('conv-123');
+      expect(result).toEqual(mockConversionResult);
       expect(receivedBody.image_base64).toBe('dGVzdA==');
       expect(receivedBody.image_content_type).toBe('application/pdf');
     });
@@ -154,7 +155,7 @@ describe('Convert', () => {
     it('returns RawResponse for run()', async () => {
       server.use(
         http.post(`${TEST_BASE_URL}/api/convert`, () => {
-          return HttpResponse.json(mockConversionStatus);
+          return HttpResponse.json(mockConversionResult);
         }),
       );
 
@@ -167,7 +168,7 @@ describe('Convert', () => {
       expect(raw).toBeInstanceOf(RawResponse);
       expect(raw.statusCode).toBe(200);
       const parsed = await raw.parse();
-      expect(parsed.conversion_id).toBe('conv-123');
+      expect(parsed).toEqual(mockConversionResult);
     });
 
     it('returns RawResponse for getStatus()', async () => {
