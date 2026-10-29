@@ -174,11 +174,11 @@ const status = await client.convert.runAsync({
   file: readFileSync('large_document.pdf'),
   documentTypeCode: 'invoice',
 });
-console.log(`Conversion ID: ${status.conversionId}`);
+console.log(`Conversion ID: ${status.conversion_id}`);
 
-// Poll for completion
+// Poll until the conversion reaches SUCCESS or ERROR
 const final = await status.wait();
-if (final.isSuccess()) {
+if (final.status === 'SUCCESS') {
   console.log(final.data);
 }
 ```
@@ -522,13 +522,18 @@ const final = await status.wait({
   timeout: 300_000,    // maximum wait time in ms
 });
 
-if (final.isSuccess()) {
+if (final.status === 'SUCCESS') {
   console.log('Conversion complete!');
   console.log(final.data);
-} else if (final.isFailed()) {
+} else if (final.status === 'ERROR') {
   console.error(`Conversion failed: ${final.error}`);
 }
 ```
+
+`wait()` resolves with the final status object once the operation reaches
+`SUCCESS` or `ERROR`; check `status` (or use `isConversionSuccess()` /
+`isConversionError()`) to tell them apart. It throws an `APITimeoutError` if
+`timeout` elapses first.
 
 ## Type Safety
 
