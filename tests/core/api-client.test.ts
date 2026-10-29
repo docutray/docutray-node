@@ -168,6 +168,35 @@ describe('APIClient', () => {
 
       await expect(client.get('/test')).rejects.toThrow('Document type not found');
     });
+
+    it.each([
+      ['null', null],
+      ['an object', { code: 'X' }],
+    ])('ignores a message that is %s and falls back to error', async (_label, message) => {
+      mockFetch = createMockFetch([
+        { status: 404, body: { message, error: 'Document type not found' } },
+      ]);
+      client = new APIClient({
+        apiKey: 'key',
+        maxRetries: 0,
+        fetch: mockFetch as unknown as typeof globalThis.fetch,
+      });
+
+      await expect(client.get('/test')).rejects.toThrow(/^Document type not found$/);
+    });
+
+    it('uses the generic message when neither message nor error is a string', async () => {
+      mockFetch = createMockFetch([
+        { status: 400, body: { message: 42 } },
+      ]);
+      client = new APIClient({
+        apiKey: 'key',
+        maxRetries: 0,
+        fetch: mockFetch as unknown as typeof globalThis.fetch,
+      });
+
+      await expect(client.get('/test')).rejects.toThrow('Request failed with status 400');
+    });
   });
 
   describe('retry behavior', () => {

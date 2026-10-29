@@ -287,6 +287,6 @@ export class APIClient {
 function extractErrorMessage(body: unknown): string | undefined {
   if (!body || typeof body !== 'object') return undefined;
   const record = body as Record<string, unknown>;
-  if ('message' in record) return String(record.message);
+  if (typeof record.message === 'string') return record.message;
   return typeof record.error === 'string' ? record.error : undefined;
 }
