@@ -48,7 +48,7 @@ const client = new DocuTray({ apiKey: 'your-api-key' });
 
 // Via environment variable
 // export DOCUTRAY_API_KEY="your-api-key"
-const client = new DocuTray(); // Reads from DOCUTRAY_API_KEY
+const envClient = new DocuTray(); // Reads from DOCUTRAY_API_KEY
 ```
 
 ### Base URL
@@ -82,10 +82,10 @@ Configure automatic retry behavior:
 const client = new DocuTray({ apiKey: 'your-api-key' });
 
 // Custom retry count
-const client = new DocuTray({ apiKey: 'your-api-key', maxRetries: 5 });
+const patientClient = new DocuTray({ apiKey: 'your-api-key', maxRetries: 5 });
 
 // Disable retries
-const client = new DocuTray({ apiKey: 'your-api-key', maxRetries: 0 });
+const noRetryClient = new DocuTray({ apiKey: 'your-api-key', maxRetries: 0 });
 ```
 
 ## Error Handling
@@ -119,6 +119,7 @@ import DocuTray, {
   RateLimitError,
   NotFoundError,
 } from 'docutray';
+import { readFileSync } from 'fs';
 
 const client = new DocuTray({ apiKey: 'your-api-key' });
 
@@ -164,7 +165,7 @@ console.log(result.validation);      // see "Conversion validation" below
 console.log(result.field_locations); // only when the type has boundingBoxesEnabled
 
 // From URL
-const result = await client.convert.run({
+const fromUrl = await client.convert.run({
   url: 'https://example.com/invoice.pdf',
   documentTypeCode: 'invoice',
 });
@@ -193,7 +194,10 @@ conversion status.
 ```typescript
 import { isValidationOutcome, isValidationSystemFailure } from 'docutray';
 
-const { validation } = await client.convert.run({ url, documentTypeCode: 'invoice' });
+const { validation } = await client.convert.run({
+  url: 'https://example.com/invoice.pdf',
+  documentTypeCode: 'invoice',
+});
 
 if (isValidationOutcome(validation)) {
   // Validation ran: { valid, errors: ValidationIssue[], warnings: ValidationIssue[] }
@@ -549,6 +553,7 @@ The SDK is fully typed with TypeScript, providing complete type safety:
 ```typescript
 import DocuTray from 'docutray';
 import type { ConversionResult, DocumentType } from 'docutray';
+import { readFileSync } from 'fs';
 
 const client = new DocuTray({ apiKey: 'your-api-key' });
 
